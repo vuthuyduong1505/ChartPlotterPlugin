@@ -1,0 +1,31 @@
+# Các thư mục Build (Nơi chứa file chạy .exe và file tạm)
+
+build*/
+
+out/
+
+
+
+# File cấu hình riêng của máy bạn (đường dẫn ổ đĩa...)
+
+*.user
+
+
+
+# File tạm của CMake
+
+CMakeFiles/
+
+CMakeCache.txt
+
+CMakeScripts/
+
+cmake_install.cmake
+
+
+
+# File hệ thống rác
+
+.DS_Store
+
+Thumbs.db 
