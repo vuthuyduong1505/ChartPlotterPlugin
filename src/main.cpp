@@ -1,6 +1,6 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
-#include <chartitem.h>
+#include <src/chartitem.h>
 #include<QQuickWindow>
 int main(int argc, char *argv[])
 {

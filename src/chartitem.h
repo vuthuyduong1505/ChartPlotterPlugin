@@ -1,8 +1,8 @@
 #ifndef CHARTITEM_H
 #define CHARTITEM_H
-#include"linechartstrategy.h"
-#include"barchartstrategy.h"
-#include"piechartstrategy.h"
+#include"strategies/linechartstrategy.h"
+#include"strategies/barchartstrategy.h"
+#include"strategies/piechartstrategy.h"
 #include <QQuickFramebufferObject>
 #include<QOpenGLFunctions>
 

@@ -1,7 +1,7 @@
 #ifndef BARCHARTSTRATEGY_H
 #define BARCHARTSTRATEGY_H
 
-#include "chartstrategy.h"
+#include "src/chartstrategy.h"
 #include <QOpenGLBuffer>
 #include <QOpenGLFunctions>
 #include <QOpenGLVertexArrayObject>

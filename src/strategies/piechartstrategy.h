@@ -1,7 +1,7 @@
 #ifndef PIECHARTSTRATEGY_H
 #define PIECHARTSTRATEGY_H
 
-#include "chartstrategy.h"
+#include "src/chartstrategy.h"
 #include <QOpenGLBuffer>
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLShaderProgram>

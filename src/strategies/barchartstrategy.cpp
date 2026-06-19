@@ -12,8 +12,8 @@ BarChartStrategy::~BarChartStrategy()
 void BarChartStrategy::init()
 {
     program=new QOpenGLShaderProgram();
-    program->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shader.vert");
-    program->addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shader.frag");
+    program->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shaders/shader.vert");
+    program->addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shaders/shader.frag");
 
     program->bind();
     vao.create();

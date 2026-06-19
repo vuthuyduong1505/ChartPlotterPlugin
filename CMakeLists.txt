@@ -10,21 +10,22 @@ qt_standard_project_setup(REQUIRES 6.10)
 set(CMAKE_AUTORCC ON)
 
 qt_add_executable(appQmlTest
-    main.cpp
-    chartitem.cpp
-    chartitem.h
+    src/main.cpp
+    src/chartitem.h
+    src/chartitem.cpp
+    src/chartstrategy.h
+    src/strategies/linechartstrategy.h
+    src/strategies/linechartstrategy.cpp
+    src/strategies/barchartstrategy.h
+    src/strategies/barchartstrategy.cpp
+    src/strategies/piechartstrategy.h
+    src/strategies/piechartstrategy.cpp
 )
-
 qt_add_qml_module(appQmlTest
     URI QmlTest
     QML_FILES
-        Main.qml
-        SOURCES chartitem.h chartitem.cpp
+        ui/Main.qml
         RESOURCES resources.qrc
-        SOURCES chartstrategy.h
-        SOURCES linechartstrategy.h linechartstrategy.cpp
-        SOURCES barchartstrategy.h barchartstrategy.cpp
-        SOURCES piechartstrategy.h piechartstrategy.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

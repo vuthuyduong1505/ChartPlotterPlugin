@@ -1,7 +1,7 @@
 #ifndef LINECHARTSTRATEGY_H
 #define LINECHARTSTRATEGY_H
 
-#include "chartstrategy.h"
+#include "src/chartstrategy.h"
 #include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLVertexArrayObject>
