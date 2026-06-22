@@ -26,6 +26,7 @@ qt_add_qml_module(appQmlTest
     QML_FILES
         ui/Main.qml
         RESOURCES resources.qrc
+        SOURCES src/datamanager.h src/datamanager.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

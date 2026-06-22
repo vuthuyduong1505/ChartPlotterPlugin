@@ -31,68 +31,27 @@ float BarChartStrategy::mapvalue(float input, float inputMin, float inputMax, fl
 }
 void BarChartStrategy::draw(QOpenGLFunctions *f, float time)
 {
-    program->bind();
-    vao.bind();
-  /*  gridData.clear();
-    // vẽ các đường lưới dọc và nagng cách nhau 0.2 đơn vị OpenGL
-    for(float i=-1.0f;i<=1.0f;i=i+0.2f)
-    {
-        // đường dọc
-        gridData.push_back(i);
-        gridData.push_back(-1.0f);
-        gridData.push_back(0.0f);
-
-        gridData.push_back(i);
-        gridData.push_back(1.0f);
-        gridData.push_back(0.0f);
-
-        // đường ngang
-        gridData.push_back(-1.0f);
-        gridData.push_back(i);
-        gridData.push_back(0.0f);
-
-        gridData.push_back(1.0f);
-        gridData.push_back(i);
-        gridData.push_back(0.0f);
-    }
-    vbo.bind();
-    vbo.allocate(gridData.data(),gridData.size()*sizeof(float));
-    program->setUniformValue("ourColor",QVector4D(0.2f, 0.2f, 0.2f, 1.0f));
-    f->glLineWidth(1.0f);
-    f->glDrawArrays(GL_LINES,0,gridData.size()/3);
-
-    // ===Vẽ hệ trục tọa độ===
-
-    float axesData[]={
-        -1.0f, 0.0f, 0.0f,   1.0f, 0.0f, 0.0f, // trục X
-        0.0f, -1.0f, 0.0f,  0.0f, 1.0f, 0.0f // trục Y
-    };
-
-    vbo.bind();
-    vbo.allocate(axesData, sizeof(axesData));
-
-    program->setUniformValue("ourColor", QVector4D(1.0f, 1.0f, 1.0f, 1.0f));
-    f->glLineWidth(2.0f);
-    f->glDrawArrays(GL_LINES,0,4);*/
 
     //===Vẽ đồ thị===
 
-    //tạo danh sách điểm mới
-    barData.clear();
-    int numBars = 20; // Vẽ 20 cột cho dễ nhìn
-    float barWidth = 0.03f; // Độ rộng của mỗi cột
-  //  float gap=0.005f;
-    for (int i = 0; i < numBars; ++i) {
-        // 1. Tính toán giá trị thực
-        float xReal = i * (100.0f / numBars);
-        float yReal = std::sin(i * 0.5f + time) * 40 + 50;
+    //lấy dữ liệu từ kho chung
+    const auto rawData = DataManager::instance()->getData();
+    if(rawData.empty()) return;
 
-        // 2. Mapping sang OpenGL
-        float xGL = mapvalue(xReal, 0, 100, -0.9f, 0.9f);
-        float yGL = mapvalue(yReal, 0, 100, -1.0f, 1.0f);
+    program->bind();
+    vao.bind();
+
+    barData.clear();
+    float barWidth = 0.03f; // Độ rộng của mỗi cột
+
+    for (const auto &p:rawData) {
+
+        // Mapping sang OpenGL
+        float xGL = mapvalue(p.x, 0, 100, -0.9f, 0.9f);
+        float yGL = mapvalue(p.y, 0, 100, -1.0f, 1.0f);
         float yBottom = -1.0f; // Đáy cột luôn nằm ở cạnh dưới màn hình
 
-        // 3. TẠO 6 ĐỈNH CHO 1 HÌNH CHỮ NHẬT (2 Tam giác)
+        // TẠO 6 ĐỈNH CHO 1 HÌNH CHỮ NHẬT (2 Tam giác)
         // Tam giác 1
         barData.push_back(xGL - barWidth); barData.push_back(yBottom); barData.push_back(0); // Trái dưới
         barData.push_back(xGL + barWidth); barData.push_back(yBottom); barData.push_back(0); // Phải dưới

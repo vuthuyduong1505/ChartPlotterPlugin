@@ -2,6 +2,7 @@
 #define BARCHARTSTRATEGY_H
 
 #include "src/chartstrategy.h"
+#include "src/datamanager.h"
 #include <QOpenGLBuffer>
 #include <QOpenGLFunctions>
 #include <QOpenGLVertexArrayObject>

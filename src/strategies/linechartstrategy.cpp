@@ -71,8 +71,7 @@ float LineChartStrategy::mapvalue(float input, float inputMin, float inputMax, f
 
 void LineChartStrategy::draw(QOpenGLFunctions *f, float time)
 {
-    program->bind();
-    vao.bind();
+
 //===VẼ LƯỚI TỪ BỘ NHỚ===
     vboGrid.bind();
     program->setAttributeBuffer(0,GL_FLOAT,0,3,3*sizeof(float));
@@ -92,17 +91,22 @@ void LineChartStrategy::draw(QOpenGLFunctions *f, float time)
 
     //===Vẽ đồ thị===
 
-    //tạo danh sách điểm mới
+    // lấy dữ liệu từ kho chung
+    const auto& rawData =DataManager::instance()->getData();
+
+    if(rawData.empty()) return;
+
+    program->bind();
+    vao.bind();
+
     plotData.clear();
-    int numPoint =100;
-    for(int i=0;i<numPoint;i++)
+
+    for(const auto& p:rawData)
     {
-        float x=static_cast<float>(i); // ép kiểu an toàn sang float để tính toán
-        float y= sin(i*0.2f +time)*40 +50;
 
         // ánh xạ sang hệ tọa độ GL
-        float xGL = mapvalue(x,0,99,-1.0f,1.0f);
-        float yGL = mapvalue(y,0,100,-1.0f,1.0f);
+        float xGL = mapvalue(p.x,0,100,-1.0f,1.0f);
+        float yGL = mapvalue(p.y,0,100,-1.0f,1.0f);
 
         plotData.push_back(xGL);
         plotData.push_back(yGL);

@@ -26,6 +26,8 @@ void pieChartStrategy::init()
 
 void pieChartStrategy::draw(QOpenGLFunctions *f, float time)
 {
+    const auto rawData = DataManager::instance()->getData();
+    if(rawData.empty())return;
     program->bind();
     vao.bind();
     // Lấy kích thước cửa sổ và tính tỉ lệ bù trừ
@@ -48,19 +50,30 @@ void pieChartStrategy::draw(QOpenGLFunctions *f, float time)
 
 
 
-    // giả lập dữ liệu 3 phần chiếm tỉ lệ lần lượt là:
-    std::vector<float> values={30.0f,50.0f,20.0f};
-
-    // bảng màu tương ứng cho ba phần
-    std::vector<QVector4D> colors={
-        QVector4D(0.9f, 0.3f, 0.3f, 1.0f), // Màu đỏ nhạt
-        QVector4D(0.3f, 0.8f, 0.4f, 1.0f), // Màu xanh lá
-        QVector4D(0.2f, 0.5f, 0.9f, 1.0f)  // Màu xanh dương
-    };
+    // Xử  lí dữ liệu thực tế
+    std::vector<float> values;
 
     float total=0.0f;
-    for(float v:values) total=total+v;
+    for(const auto &p:rawData){
+        float val=std::abs(p.y);
+        values.push_back(val);
+        total+=val;
+    }
 
+    if(total==0.0f)
+    {
+        vao.release();
+        program->release();
+        return;
+    }
+    // Bảng màu (Thêm vài màu để đồ thị sinh động hơn)
+    std::vector<QVector4D> colors = {
+        QVector4D(0.9f, 0.3f, 0.3f, 1.0f), // Đỏ nhạt
+        QVector4D(0.3f, 0.8f, 0.4f, 1.0f), // Xanh lá
+        QVector4D(0.2f, 0.5f, 0.9f, 1.0f), // Xanh dương
+        QVector4D(0.9f, 0.7f, 0.1f, 1.0f), // Vàng
+        QVector4D(0.6f, 0.2f, 0.8f, 1.0f)  // Tím
+    };
     float startAngle=0.0f;
     float radius=0.6f;
 
@@ -72,7 +85,7 @@ void pieChartStrategy::draw(QOpenGLFunctions *f, float time)
         float endAngle= startAngle+sliceAngle;
 
         std::vector<float>pieData;
-        int segment =100;
+        int segment =30;
         for(int j=0;j<segment;++j)
         {
             // tính góc cụ thể cho nấc hiện tại và nấc kế tiếp
@@ -98,7 +111,7 @@ void pieChartStrategy::draw(QOpenGLFunctions *f, float time)
         program->setAttributeBuffer(0,GL_FLOAT,0,3,3*sizeof(float));
         program->enableAttributeArray(0);
 
-        program->setUniformValue("ourColor",colors[i]);
+        program->setUniformValue("ourColor",colors[i % colors.size()]);
 
         f->glDrawArrays(GL_TRIANGLES,0,pieData.size()/3);
 

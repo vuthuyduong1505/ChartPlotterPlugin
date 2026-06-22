@@ -2,7 +2,10 @@
 #include <QOpenGLFunctions>
 #include <QOpenGLFramebufferObject>
 
-ChartItem::ChartItem() {}
+ChartItem::ChartItem() {
+    // Kết nối: khi DataManager báo có dữ liệu mới ChartItem tự động gọi update() để vẽ lại
+    connect(DataManager::instance(), &DataManager::dataChanged,this,&ChartItem::update);
+}
 
 void ChartItem::setChartType(int type)
 {

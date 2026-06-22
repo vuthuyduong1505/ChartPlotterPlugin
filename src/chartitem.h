@@ -3,8 +3,10 @@
 #include"strategies/linechartstrategy.h"
 #include"strategies/barchartstrategy.h"
 #include"strategies/piechartstrategy.h"
+#include"src/datamanager.h"
 #include <QQuickFramebufferObject>
 #include<QOpenGLFunctions>
+
 
 // lớp ChartItem chạy trên luồng giao diện (GUI), lắng nghe chuột, bàn phím, kích thước cửa sổ
 class ChartItem : public QQuickFramebufferObject
