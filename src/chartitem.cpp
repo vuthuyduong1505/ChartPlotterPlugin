@@ -1,4 +1,5 @@
 #include "chartitem.h"
+#include "src/fileloader.h"
 #include <QOpenGLFunctions>
 #include <QOpenGLFramebufferObject>
 
@@ -14,6 +15,16 @@ void ChartItem::setChartType(int type)
         emit chartTypeChanged();
         update();
     }
+}
+
+bool ChartItem::loadDataFromFile(const QString &filePath)
+{
+    return FileLoader::loadDataset(filePath);
+}
+
+void ChartItem::clearChart()
+{
+    DataManager::instance()->clear();
 }
 
 void ChartRenderer::synchronize(QQuickFramebufferObject *item)

@@ -24,6 +24,9 @@ public:
     void setChartType(int type); // hàm chạy mỗi khi QML chọn biểu đồ khác, ghi lại yêu cầu vào biến m_chartType
     Renderer *createRenderer() const override;
 
+    //Mở cổng API cho QML gọi xuống
+    Q_INVOKABLE bool loadDataFromFile(const QString &filePath);
+    Q_INVOKABLE void clearChart();
 signals:
     void chartTypeChanged(); // tín hiệu báo cho QML khi giá trị chartType thay đổi
 private:

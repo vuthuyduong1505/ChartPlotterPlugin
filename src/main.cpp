@@ -11,19 +11,20 @@ int main(int argc, char *argv[])
      qmlRegisterType<ChartItem>("MyChartLibrary", 1, 0, "MyChart");
 
      // Thiết lập máy bơm dữ liệu giả lập
-     static float counter =0;
+    /* static float counter =0;
      QTimer dataPump;
-     QObject::connect(&dataPump,&QTimer::timeout, [](){
+     QObject::connect(&dataPump,&QTimer::timeout, [&dataPump](){
          float y= (rand()%100); // giả lập nhiệt dộ ngẫu nhiên từ 0-100
              DataManager::instance()->addData(counter,y);
          counter+=1.0f;
          if(counter>100){
              counter=0; // rết khi đầy màn hình
-             DataManager::instance()->clear();
+             //DataManager::instance()->clear();
+             dataPump.stop();
          }
      });
          dataPump.start(100);
-
+*/
     QQmlApplicationEngine engine;
     QObject::connect(
         &engine,

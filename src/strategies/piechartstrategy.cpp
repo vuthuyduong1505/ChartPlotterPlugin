@@ -28,6 +28,23 @@ void pieChartStrategy::draw(QOpenGLFunctions *f, float time)
 {
     const auto rawData = DataManager::instance()->getData();
     if(rawData.empty())return;
+    // Phân tích dữ liệu
+    float countLow=0,countMid=0, countHigh=0;
+    for (const auto &p :rawData){
+        if(p.y<=33) countLow++;
+        else if(p.y<=66)countMid++;
+        else countHigh++;
+    }
+
+    //tính tổng để ra tỉ lệ
+    float total =countHigh+countLow+countMid;
+    float ratios[3]={countLow/total, countMid/total,countHigh/total};
+    QVector4D colors[3] = {
+        QVector4D(0.9f, 0.3f, 0.3f, 1.0f), // Màu Đỏ (Thấp)
+        QVector4D(0.3f, 0.9f, 0.3f, 1.0f), // Màu Xanh lá (Trung bình)
+        QVector4D(0.3f, 0.3f, 0.9f, 1.0f)  // Màu Xanh dương (Cao)
+    };
+
     program->bind();
     vao.bind();
     // Lấy kích thước cửa sổ và tính tỉ lệ bù trừ
@@ -48,42 +65,15 @@ void pieChartStrategy::draw(QOpenGLFunctions *f, float time)
         scaleY=static_cast<float>(screenWidth)/screenHeight;
     }
 
-
-
-    // Xử  lí dữ liệu thực tế
-    std::vector<float> values;
-
-    float total=0.0f;
-    for(const auto &p:rawData){
-        float val=std::abs(p.y);
-        values.push_back(val);
-        total+=val;
-    }
-
-    if(total==0.0f)
-    {
-        vao.release();
-        program->release();
-        return;
-    }
-    // Bảng màu (Thêm vài màu để đồ thị sinh động hơn)
-    std::vector<QVector4D> colors = {
-        QVector4D(0.9f, 0.3f, 0.3f, 1.0f), // Đỏ nhạt
-        QVector4D(0.3f, 0.8f, 0.4f, 1.0f), // Xanh lá
-        QVector4D(0.2f, 0.5f, 0.9f, 1.0f), // Xanh dương
-        QVector4D(0.9f, 0.7f, 0.1f, 1.0f), // Vàng
-        QVector4D(0.6f, 0.2f, 0.8f, 1.0f)  // Tím
-    };
     float startAngle=0.0f;
     float radius=0.6f;
 
     //vòng lặp vẽ từng miếng bánh
-    for(size_t i=0;i<values.size();++i)
+    for(size_t i=0;i<3;++i)
     {
+        if(ratios[i]==0) continue;
         // tính góc quét của miếng bánh hiện tại
-        float sliceAngle= (values[i]/total)*2.0f*M_PI;
-        float endAngle= startAngle+sliceAngle;
-
+        float sliceAngle= ratios[i] *2.0f*M_PI;
         std::vector<float>pieData;
         int segment =30;
         for(int j=0;j<segment;++j)
@@ -111,11 +101,11 @@ void pieChartStrategy::draw(QOpenGLFunctions *f, float time)
         program->setAttributeBuffer(0,GL_FLOAT,0,3,3*sizeof(float));
         program->enableAttributeArray(0);
 
-        program->setUniformValue("ourColor",colors[i % colors.size()]);
+        program->setUniformValue("ourColor",colors[i]);
 
         f->glDrawArrays(GL_TRIANGLES,0,pieData.size()/3);
 
-        startAngle=endAngle;
+        startAngle+=sliceAngle;
     }
     vao.release();
     program->release();

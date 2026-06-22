@@ -8,11 +8,17 @@ Window {
     title: qsTr("Test QML")
 
     MyChart {
-        // id: myplotter
+          id: myplotter
            anchors.fill: parent // Cho biểu đồ tràn hết cửa sổ
            chartType: typeSelector.currentIndex // lấy giá trị loại biểu đồ đnag chọn cho vào biến chartType
 
        }
+     Row{
+            anchors.top: parent.top
+            anchors.right: parent.right
+            anchors.margins: 20
+            spacing: 10 // Khoảng cách giữa combo box và nút bấm
+     }
       // menu chọn loại biểu đồ
        ComboBox{
            id:typeSelector
@@ -22,5 +28,34 @@ Window {
            anchors.right: parent.right
            anchors.margins: 20
        }
-       }
+       //nút bấm nạp file
+       Button {
+                   text: "Nạp Dữ Liệu"
+
+                   // Định dạng một chút cho đẹp (Tùy chọn)
+                   background: Rectangle {
+                       implicitWidth: 150
+                       implicitHeight: 40
+                       color: parent.down ? "#d0d0d0" : (parent.hovered ? "#e0e0e0" : "#ffffff")
+                       border.color: "#999999"
+                       radius: 4
+                   }
+
+       // HÀNH ĐỘNG KHI BẤM NÚT:
+                   onClicked: {
+                       // Giả sử id của thành phần C++ (ChartItem) bạn đặt ở dưới là "myChartVisual"
+                       // Ta gọi thẳng tên hàm Q_INVOKABLE đã mở cổng ở C++ xuống:
+
+                       var success = myplotter.loadDataFromFile("D:/QT/Project/Test/data.txt");
+
+                       if (success) {
+                           console.log("QML: Da nap file va tinh toan Min/Max thanh cong!");
+                       } else {
+                           console.log("QML: Doc file that bai! Kiểm tra lại đường dẫn.");
+                       }
+                   }
+               }
+}
+
+
 
