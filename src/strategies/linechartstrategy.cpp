@@ -92,8 +92,12 @@ void LineChartStrategy::draw(QOpenGLFunctions *f, float time)
     //===Vẽ đồ thị===
 
     // lấy dữ liệu từ kho chung
+    auto data=DataManager::instance();
     const auto& rawData =DataManager::instance()->getData();
-
+    float minX=data->minX();
+    float maxX=data->maxX();
+    float minY=data->minY();
+    float maxY=data->maxY();
     if(rawData.empty()) return;
 
     program->bind();
@@ -105,8 +109,8 @@ void LineChartStrategy::draw(QOpenGLFunctions *f, float time)
     {
 
         // ánh xạ sang hệ tọa độ GL
-        float xGL = mapvalue(p.x,0,100,-1.0f,1.0f);
-        float yGL = mapvalue(p.y,0,100,-1.0f,1.0f);
+        float xGL = mapvalue(p.x,minX,maxX,-1.0f,1.0f);
+        float yGL = mapvalue(p.y,minY,maxY,-1.0f,1.0f);
 
         plotData.push_back(xGL);
         plotData.push_back(yGL);

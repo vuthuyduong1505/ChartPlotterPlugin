@@ -43,7 +43,6 @@ Window {
 
        // HÀNH ĐỘNG KHI BẤM NÚT:
                    onClicked: {
-                       // Giả sử id của thành phần C++ (ChartItem) bạn đặt ở dưới là "myChartVisual"
                        // Ta gọi thẳng tên hàm Q_INVOKABLE đã mở cổng ở C++ xuống:
 
                        var success = myplotter.loadDataFromFile("D:/QT/Project/Test/data.txt");

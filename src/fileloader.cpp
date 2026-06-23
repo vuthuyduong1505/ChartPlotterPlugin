@@ -1,5 +1,5 @@
 #include "fileloader.h"
-#include "src/datamanager.h"
+#include "datamanager.h"
 #include <QFile>
 #include <QTextStream>
 #include <QStringList>
@@ -17,8 +17,9 @@ bool FileLoader::loadDataset(const QString &filePath)
       qWarning()<<"khong the mo filetai duong dan"<<filePath;
       return false;
   }
+  // tạo 1 vector để gom toàn bộ dữ liệu tĩnh trong file
+  std::vector<DataPoint> buffer;
   //sau khi nập file xóa dữ kiệu cũ để chuẩn bị nạp dữ liệu mới
-  DataManager::instance()->clear();
 
   //Tạo đường ống đọc chữ
   //QTextStream là bộ công cụ của Qt để bóc tách chữ từ file
@@ -46,12 +47,13 @@ bool FileLoader::loadDataset(const QString &filePath)
           float x=parts[i].toFloat();
           float y=parts[i+1].toFloat();
 
-          DataManager::instance()->addData(x,y);
+          buffer.push_back({x,y});
           }
       }
   }
   //Đóng file
   file.close();
+  DataManager::instance()->setData(buffer);
   qDebug()<<"Nap file thanh cong";
   return true;
 }

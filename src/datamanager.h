@@ -21,6 +21,8 @@ public:
 
     // hàm lấy toàn bộ dữ liệu ra để vẽ
     std::vector<DataPoint> getData();
+    // Hàm nạp cả mảng dữ liệu
+    void setData(const std::vector<DataPoint> &newData);
     //hàm xóa sạch kho
     void clear();
 
