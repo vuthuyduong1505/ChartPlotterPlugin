@@ -4,8 +4,11 @@
 #include <QOpenGLFramebufferObject>
 
 ChartItem::ChartItem() {
-    // Kết nối: khi DataManager báo có dữ liệu mới ChartItem tự động gọi update() để vẽ lại
-    connect(DataManager::instance(), &DataManager::dataChanged,this,&ChartItem::update);
+    // Kết nối: khi DataManager báo có dữ liệu mới, đặt cờ thay đổi và gọi update() để vẽ lại
+    connect(DataManager::instance(), &DataManager::dataChanged, this, [this](){
+        m_dataChanged = true;
+        update();
+    });
 }
 
 void ChartItem::setChartType(int type)
@@ -43,8 +46,21 @@ void ChartRenderer::synchronize(QQuickFramebufferObject *item)
 
     // Gửi loại biểu đồ (0, 1, 2...) từ Item xuống Renderer
     m_type = view->chartType();
-    m_color=view->chartColor();
+    m_color = view->chartColor();
 
+    // ĐỒNG BỘ HÓA AN TOÀN ĐA LUỒNG:
+    // Copy dữ liệu khi GUI Thread đang bị block tạm thời trong synchronize().
+    // DataManager sử dụng std::mutex bên trong nên việc copy tại đây là tuyệt đối an toàn.
+    if (view->m_dataChanged || m_renderData.empty() || m_type != m_currentType) {
+        auto dm = DataManager::instance();
+        m_renderData = dm->getData();
+        m_minX = dm->minX();
+        m_maxX = dm->maxX();
+        m_minY = dm->minY();
+        m_maxY = dm->maxY();
+        m_dataDirty = true; // Đánh dấu dữ liệu bẩn để nạp VBO
+        view->m_dataChanged = false;
+    }
 }
 
 // khi QML cần hiện một cái gì đó thì
@@ -94,17 +110,18 @@ void ChartRenderer::render()
         else if(m_type==2)
         {
             strategy=new pieChartStrategy();
-
         }
 
         if(strategy!=nullptr) strategy->init(); // khởi tạo Shader/VBO cho biểu đồ mới
         m_currentType = m_type; // ghi nhớ loại biểu đồ hiện tại
+        m_dataDirty = true; // Strategy mới yêu cầu cập nhật lại VBO
     }
 
     // 2. THỰC HIỆN VẼ
     if (strategy) {
-        strategy->draw(f, time, m_color);
+        strategy->draw(f, time, m_color, m_renderData, m_minX, m_maxX, m_minY, m_maxY, m_dataDirty);
     }
+    m_dataDirty = false; // Reset cờ bẩn sau khi vẽ
     time=time+0.05f;
     update();
 }

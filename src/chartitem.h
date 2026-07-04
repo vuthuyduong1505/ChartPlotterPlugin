@@ -7,6 +7,7 @@
 #include <QQuickFramebufferObject>
 #include<QOpenGLFunctions>
 #include<QColor>
+#include<vector>
 
 
 // lớp ChartItem chạy trên luồng giao diện (GUI), lắng nghe chuột, bàn phím, kích thước cửa sổ
@@ -39,7 +40,9 @@ signals:
 private:
     int m_chartType=0; // line:0, bar:1
     QColor m_chartColor;// biến lưu màu ở C++
+    bool m_dataChanged = false; // đánh dấu dữ liệu thay đổi từ GUI thread
 
+    friend class ChartRenderer; // Cho phép Renderer truy cập m_dataChanged
 };
 
 // Luồng đồ họa
@@ -58,6 +61,14 @@ private:
     int m_type=0;
     int m_currentType=-1;
     QColor m_color;
+
+    // Các biến đệm nội bộ trên Render Thread để đồng bộ hóa an toàn đa luồng
+    std::vector<DataPoint> m_renderData;
+    float m_minX = 0.0f;
+    float m_maxX = 1.0f;
+    float m_minY = 0.0f;
+    float m_maxY = 1.0f;
+    bool m_dataDirty = false; // đánh dấu dữ liệu VBO cần được cập nhật lại
 
 };
 

@@ -25,65 +25,68 @@ void BarChartStrategy::init()
     vao.release();
 
 }
-float BarChartStrategy::mapvalue(float input, float inputMin, float inputMax, float outputMin, float outputMax)
+void BarChartStrategy::draw(QOpenGLFunctions *f, float time, const QColor &color,
+                             const std::vector<DataPoint> &rawData,
+                             float minX, float maxX, float minY, float maxY,
+                             bool dataDirty)
 {
-    return (outputMax - outputMin) * (input - inputMin) / (inputMax - inputMin) + outputMin;
-}
-void BarChartStrategy::draw(QOpenGLFunctions *f, float time, const QColor &color)
-{
-
-    //===Vẽ đồ thị===
-
-    //lấy dữ liệu từ kho chung
-    auto data=DataManager::instance();
-    const auto& rawData =DataManager::instance()->getData();
-    float minX=data->minX();
-    float maxX=data->maxX();
-    float minY=data->minY();
-    float maxY=data->maxY();
-    if(rawData.empty()) return;
+    if (rawData.empty()) return;
 
     program->bind();
     vao.bind();
 
-    barData.clear();
-    float barWidth = 0.03f; // Độ rộng của mỗi cột
+    // Thiết lập Uniforms cho Shader để mapping
+    program->setUniformValue("u_useMapping", 1);
+    program->setUniformValue("u_minX", minX);
+    program->setUniformValue("u_maxX", maxX);
+    program->setUniformValue("u_minY", minY);
+    program->setUniformValue("u_maxY", maxY);
+    program->setUniformValue("u_mapMinX", -0.9f); // Chừa lề để cột không sát mép
+    program->setUniformValue("u_mapMaxX", 0.9f);
+    program->setUniformValue("u_mapMinY", -1.0f);
+    program->setUniformValue("u_mapMaxY", 1.0f);
 
-    for (const auto &p:rawData) {
-
-        // Mapping sang OpenGL
-        float xGL = mapvalue(p.x, minX, maxX, -0.9f, 0.9f);
-        float yGL = mapvalue(p.y, minY, maxY, -1.0f, 1.0f);
-        float yBottom = -1.0f; // Đáy cột luôn nằm ở cạnh dưới màn hình
-
-        // TẠO 6 ĐỈNH CHO 1 HÌNH CHỮ NHẬT (2 Tam giác)
-        // Tam giác 1
-        barData.push_back(xGL - barWidth); barData.push_back(yBottom); barData.push_back(0); // Trái dưới
-        barData.push_back(xGL + barWidth); barData.push_back(yBottom); barData.push_back(0); // Phải dưới
-        barData.push_back(xGL - barWidth); barData.push_back(yGL);     barData.push_back(0); // Trái trên
-
-        // Tam giác 2
-        barData.push_back(xGL - barWidth); barData.push_back(yGL);     barData.push_back(0); // Trái trên
-        barData.push_back(xGL + barWidth); barData.push_back(yBottom); barData.push_back(0); // Phải dưới
-        barData.push_back(xGL + barWidth); barData.push_back(yGL);     barData.push_back(0); // Phải trên
-    }
-
-    // gửi dữ liệu mới lên GPU
-    vboBar.bind();
-    vboBar.allocate(barData.data(), barData.size()*sizeof(float));
-
-
-    // Gửi màu sắc từ c++ vào shader
-    //   program->setUniformValue("ourColor", QVector4D(1.0f,1.0f,0.0f,1.0f)); // set màu vàng cho biến ourColor
-    // tạo hiệu ứng đổi màu
     QVector4D glColor(color.redF(), color.greenF(), color.blueF(), 1.0f);
     program->setUniformValue("ourColor", glColor);
 
-    f->glLineWidth(2.0f);
-    f->glDrawArrays(GL_TRIANGLES,0,barData.size()/3);
+    // TỐI ƯU: Chỉ tính toán đỉnh và nạp VBO khi dữ liệu thay đổi
+    if (dataDirty || !vboBar.isCreated()) {
+        barData.clear();
+        barData.reserve(rawData.size() * 18); // 6 đỉnh * 3 tọa độ (x, y, z)
+
+        // Tính toán chiều rộng cột Bar dựa trên độ rộng của dải dữ liệu X
+        float dataRangeX = maxX - minX;
+        if (dataRangeX == 0.0f) dataRangeX = 1.0f;
+        float barWidth = 0.015f * dataRangeX; // Chiều rộng bằng 1.5% dải dữ liệu
+        float yBottom = minY; // Đáy cột ở giá trị y nhỏ nhất
+
+        for (const auto &p : rawData) {
+            // Tam giác 1
+            barData.push_back(p.x - barWidth); barData.push_back(yBottom); barData.push_back(0); // Trái dưới
+            barData.push_back(p.x + barWidth); barData.push_back(yBottom); barData.push_back(0); // Phải dưới
+            barData.push_back(p.x - barWidth); barData.push_back(p.y);     barData.push_back(0); // Trái trên
+
+            // Tam giác 2
+            barData.push_back(p.x - barWidth); barData.push_back(p.y);     barData.push_back(0); // Trái trên
+            barData.push_back(p.x + barWidth); barData.push_back(yBottom); barData.push_back(0); // Phải dưới
+            barData.push_back(p.x + barWidth); barData.push_back(p.y);     barData.push_back(0); // Phải trên
+        }
+
+        if (!vboBar.isCreated()) {
+            vboBar.create();
+        }
+        vboBar.bind();
+        vboBar.allocate(barData.data(), barData.size() * sizeof(float));
+    } else {
+        vboBar.bind();
+    }
+
+    program->setAttributeBuffer(0, GL_FLOAT, 0, 3, 3 * sizeof(float));
+    program->enableAttributeArray(0);
+
+    f->glDrawArrays(GL_TRIANGLES, 0, barData.size() / 3);
 
     vao.release();
     program->release();
-
 }
 
