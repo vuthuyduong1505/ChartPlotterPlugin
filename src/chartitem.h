@@ -22,6 +22,7 @@ class ChartItem : public QQuickFramebufferObject
     Q_PROPERTY(QColor chartColor READ chartColor WRITE setChartColor NOTIFY chartColorChanged)
     // 0: offline (file), 1: online (real-time stream)
     Q_PROPERTY(int dataMode READ dataMode WRITE setDataMode NOTIFY dataModeChanged)
+    Q_PROPERTY(bool isAutoPanEnabled READ isAutoPanEnabled WRITE setIsAutoPanEnabled NOTIFY isAutoPanEnabledChanged)
 
 public:
     ChartItem();
@@ -40,10 +41,15 @@ public:
     int dataMode() const { return m_dataMode; }
     void setDataMode(int mode);
 
+    bool isAutoPanEnabled() const { return m_isAutoPanEnabled; }
+    void setIsAutoPanEnabled(bool enabled);
+
     //Mở cổng API cho QML gọi xuống
     Q_INVOKABLE bool loadDataFromFile(const QUrl &fileUrl);
     Q_INVOKABLE void clearChart();
     Q_INVOKABLE void resetZoom();
+    Q_INVOKABLE void pauseStream();
+    Q_INVOKABLE void resumeStream();
 
 protected:
     bool event(QEvent *event) override;
@@ -56,6 +62,7 @@ signals:
     void chartTypeChanged(); // tín hiệu báo cho QML khi giá trị chartType thay đổi
     void chartColorChanged(); // tín hiệu phát ra khi màu thay đổi
     void dataModeChanged();
+    void isAutoPanEnabledChanged();
 
 private:
     void resetViewportFromData();
@@ -73,6 +80,7 @@ private:
     ViewportManager m_viewport;
     bool m_panning = false;
     QPointF m_lastPanPos;
+    bool m_isAutoPanEnabled = true;
 
     friend class ChartRenderer; // Cho phép Renderer truy cập m_dataChanged, m_viewport
 };

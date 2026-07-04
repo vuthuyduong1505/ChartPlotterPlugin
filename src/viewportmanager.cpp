@@ -26,6 +26,13 @@ void ViewportManager::resetToDataBounds(float minX, float maxX, float minY, floa
     }
 }
 
+void ViewportManager::setViewBoundsX(float minX, float maxX)
+{
+    m_viewMinX = minX;
+    m_viewMaxX = maxX;
+    clampViewport();
+}
+
 void ViewportManager::zoomOneAxis(float &viewMin, float &viewMax, float anchor, float factor, bool enabled)
 {
     if (!enabled || factor <= 0.0f)

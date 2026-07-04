@@ -37,6 +37,22 @@ void OnlineStream::stop()
     emit runningChanged();
 }
 
+void OnlineStream::pauseStream()
+{
+    if (!m_timer.isActive())
+        return;
+    m_timer.stop();
+    emit runningChanged();
+}
+
+void OnlineStream::resumeStream()
+{
+    if (m_timer.isActive())
+        return;
+    m_timer.start();
+    emit runningChanged();
+}
+
 void OnlineStream::onTick()
 {
     auto *dm = DataManager::instance();
@@ -47,7 +63,4 @@ void OnlineStream::onTick()
 
     dm->addData(m_counter, y);
     m_counter += 1.0f;
-
-    // Giữ cửa sổ trượt để biểu đồ online mượt và không phình bộ nhớ
-    dm->keepLastN(kMaxOnlinePoints);
 }

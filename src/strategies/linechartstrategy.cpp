@@ -71,6 +71,19 @@ void LineChartStrategy::draw(QOpenGLFunctions *f, float time, const QColor &colo
 {
     if (rawData.empty()) return;
 
+    // Trục Y bảo vệ chia cho 0
+    float renderMinY = minY;
+    float renderMaxY = maxY;
+    if (std::abs(renderMaxY - renderMinY) < 0.0001f) {
+        renderMaxY += 1.0f;
+        renderMinY -= 1.0f;
+    }
+
+    // Tỷ lệ khoảng đệm 20% cho trục Y
+    float paddingY = (renderMaxY - renderMinY) * 0.2f;
+    renderMinY -= paddingY;
+    renderMaxY += paddingY;
+
     program->bind();
     vao.bind();
 
@@ -91,13 +104,13 @@ void LineChartStrategy::draw(QOpenGLFunctions *f, float time, const QColor &colo
     f->glLineWidth(2.0f);
     f->glDrawArrays(GL_LINES, 0, 4);
 
-    // 3. Vẽ đồ thị Line
+    // 3. Vẽ đồ thị Line (Sử dụng camera động từ minX, maxX)
     // Thiết lập Uniforms để Shader thực hiện ánh xạ
     program->setUniformValue("u_useMapping", 1);
     program->setUniformValue("u_minX", minX);
     program->setUniformValue("u_maxX", maxX);
-    program->setUniformValue("u_minY", minY);
-    program->setUniformValue("u_maxY", maxY);
+    program->setUniformValue("u_minY", renderMinY);
+    program->setUniformValue("u_maxY", renderMaxY);
     program->setUniformValue("u_mapMinX", -1.0f);
     program->setUniformValue("u_mapMaxX", 1.0f);
     program->setUniformValue("u_mapMinY", -1.0f);

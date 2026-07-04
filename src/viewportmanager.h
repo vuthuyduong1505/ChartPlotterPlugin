@@ -15,6 +15,7 @@ public:
     ViewportManager();
 
     void resetToDataBounds(float minX, float maxX, float minY, float maxY);
+    void setViewBoundsX(float minX, float maxX);
 
     // factor > 1: zoom in (thu hẹp viewport), factor < 1: zoom out
     // anchorX/Y: điểm neo trong không gian dữ liệu (thường là vị trí con trỏ)

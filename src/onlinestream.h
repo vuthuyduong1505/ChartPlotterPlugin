@@ -13,6 +13,8 @@ public:
 
     Q_INVOKABLE void start(int intervalMs = 100);
     Q_INVOKABLE void stop();
+    Q_INVOKABLE void pauseStream();
+    Q_INVOKABLE void resumeStream();
     bool isRunning() const { return m_timer.isActive(); }
 
 signals:

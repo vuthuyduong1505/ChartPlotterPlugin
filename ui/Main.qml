@@ -12,6 +12,7 @@ Window {
     MyChart {
         id: myplotter
         anchors.fill: parent
+        anchors.margins: 40
         chartType: typeSelector.currentIndex
         dataMode: modeSelector.currentIndex
         chartColor: "#f1c40f"
@@ -101,6 +102,40 @@ Window {
             id: modeSelector
             width: 130
             model: ["Offline", "Online"]
+        }
+
+        Button {
+            id: pauseResumeButton
+            visible: myplotter.dataMode === 1
+            text: isPaused ? "Tiếp tục" : "Tạm dừng"
+            property bool isPaused: false
+
+            Connections {
+                target: myplotter
+                function onDataModeChanged() {
+                    pauseResumeButton.isPaused = false
+                }
+            }
+
+            background: Rectangle {
+                implicitWidth: 110
+                implicitHeight: 36
+                color: parent.down ? "#d0d0d0" : (parent.hovered ? "#e0e0e0" : "#ffffff")
+                border.color: "#999999"
+                radius: 4
+            }
+
+            onClicked: {
+                if (isPaused) {
+                    myplotter.resumeStream()
+                    myplotter.isAutoPanEnabled = true
+                    isPaused = false
+                } else {
+                    myplotter.pauseStream()
+                    myplotter.isAutoPanEnabled = false
+                    isPaused = true
+                }
+            }
         }
 
         ComboBox {

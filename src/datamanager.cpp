@@ -77,35 +77,6 @@ void DataManager::clear()
     emit dataChanged();
 }
 
-void DataManager::keepLastN(std::size_t maxCount)
-{
-    if (maxCount == 0)
-        return;
 
-    {
-        std::lock_guard<std::mutex> lock(mutex);
-        if (m_data.size() <= maxCount)
-            return;
-
-        m_data.erase(m_data.begin(), m_data.end() - static_cast<std::ptrdiff_t>(maxCount));
-
-        m_minX = std::numeric_limits<float>::max();
-        m_maxX = std::numeric_limits<float>::lowest();
-        m_minY = std::numeric_limits<float>::max();
-        m_maxY = std::numeric_limits<float>::lowest();
-
-        for (const auto &p : m_data) {
-            m_minX = std::min(m_minX, p.x);
-            m_maxX = std::max(m_maxX, p.x);
-            m_minY = std::min(m_minY, p.y);
-            m_maxY = std::max(m_maxY, p.y);
-        }
-        if (m_minX == m_maxX)
-            m_maxX += 0.001f;
-        if (m_minY == m_maxY)
-            m_maxY += 0.001f;
-    }
-    emit dataChanged();
-}
 
 

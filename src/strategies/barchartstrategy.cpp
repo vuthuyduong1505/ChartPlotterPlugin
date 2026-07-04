@@ -32,15 +32,28 @@ void BarChartStrategy::draw(QOpenGLFunctions *f, float time, const QColor &color
 {
     if (rawData.empty()) return;
 
+    // Trục Y bảo vệ chia cho 0
+    float renderMinY = minY;
+    float renderMaxY = maxY;
+    if (std::abs(renderMaxY - renderMinY) < 0.0001f) {
+        renderMaxY += 1.0f;
+        renderMinY -= 1.0f;
+    }
+
+    // Tỷ lệ khoảng đệm 20% cho trục Y
+    float paddingY = (renderMaxY - renderMinY) * 0.2f;
+    renderMinY -= paddingY;
+    renderMaxY += paddingY;
+
     program->bind();
     vao.bind();
 
-    // Thiết lập Uniforms cho Shader để mapping
+    // Thiết lập Uniforms cho Shader để mapping (Sử dụng camera động từ minX, maxX)
     program->setUniformValue("u_useMapping", 1);
     program->setUniformValue("u_minX", minX);
     program->setUniformValue("u_maxX", maxX);
-    program->setUniformValue("u_minY", minY);
-    program->setUniformValue("u_maxY", maxY);
+    program->setUniformValue("u_minY", renderMinY);
+    program->setUniformValue("u_maxY", renderMaxY);
     program->setUniformValue("u_mapMinX", -0.9f); // Chừa lề để cột không sát mép
     program->setUniformValue("u_mapMaxX", 0.9f);
     program->setUniformValue("u_mapMinY", -1.0f);
@@ -54,11 +67,11 @@ void BarChartStrategy::draw(QOpenGLFunctions *f, float time, const QColor &color
         barData.clear();
         barData.reserve(rawData.size() * 18); // 6 đỉnh * 3 tọa độ (x, y, z)
 
-        // Tính toán chiều rộng cột Bar dựa trên độ rộng của dải dữ liệu X
+        // Tính toán chiều rộng cột Bar dựa trên độ rộng của dải dữ liệu X (Sử dụng camera động)
         float dataRangeX = maxX - minX;
         if (dataRangeX == 0.0f) dataRangeX = 1.0f;
         float barWidth = 0.015f * dataRangeX; // Chiều rộng bằng 1.5% dải dữ liệu
-        float yBottom = minY; // Đáy cột ở giá trị y nhỏ nhất
+        float yBottom = renderMinY; // Đáy cột ở giá trị y nhỏ nhất
 
         for (const auto &p : rawData) {
             // Tam giác 1

@@ -24,18 +24,28 @@ ChartItem::ChartItem() {
 
 
     // Kết nối: khi DataManager báo có dữ liệu mới, đặt cờ thay đổi và gọi update() để vẽ lại
-
     connect(DataManager::instance(), &DataManager::dataChanged, this, [this](){
-
         m_dataChanged = true;
 
-        // Online: luôn bám theo cửa sổ dữ liệu đang trượt
-        resetViewportFromData();
+        if (m_dataMode == 1 && m_isAutoPanEnabled) {
+            auto dm = DataManager::instance();
+            if (!dm->getData().empty()) {
+                // Cập nhật lại phạm vi biên dữ liệu
+                m_viewport.resetToDataBounds(dm->minX(), dm->maxX(), dm->minY(), dm->maxY());
+
+                // Trượt khung nhìn ngang sao cho cạnh phải khớp với điểm dữ liệu mới nhất, rộng 150.0f
+                float newViewMaxX = std::max(150.0f, dm->maxX());
+                float newViewMinX = newViewMaxX - 150.0f;
+                m_viewport.setViewBoundsX(newViewMinX, newViewMaxX);
+            } else {
+                resetViewportFromData();
+            }
+        } else if (m_dataMode == 0) {
+            resetViewportFromData();
+        }
 
         m_viewChanged = true;
-
         update();
-
     });
 
 }
@@ -112,6 +122,8 @@ void ChartItem::setDataMode(int mode)
         OnlineStream::instance()->stop();
         DataManager::instance()->clear();
         resetViewportFromData();
+        m_isAutoPanEnabled = true;
+        emit isAutoPanEnabledChanged();
         OnlineStream::instance()->start();
     } else {
         OnlineStream::instance()->stop();
@@ -121,6 +133,24 @@ void ChartItem::setDataMode(int mode)
     emit dataModeChanged();
     m_viewChanged = true;
     update();
+}
+
+void ChartItem::setIsAutoPanEnabled(bool enabled)
+{
+    if (m_isAutoPanEnabled != enabled) {
+        m_isAutoPanEnabled = enabled;
+        emit isAutoPanEnabledChanged();
+    }
+}
+
+void ChartItem::pauseStream()
+{
+    OnlineStream::instance()->pauseStream();
+}
+
+void ChartItem::resumeStream()
+{
+    OnlineStream::instance()->resumeStream();
 }
 
 

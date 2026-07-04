@@ -25,8 +25,7 @@ public:
     void setData(const std::vector<DataPoint> &newData);
     //hàm xóa sạch kho
     void clear();
-    // Giữ lại N điểm cuối (dùng cho online stream)
-    void keepLastN(std::size_t maxCount);
+
 
     //hàm để lấy min, max
     float minX() const{return m_minX;}
