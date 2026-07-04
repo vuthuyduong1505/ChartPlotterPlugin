@@ -29,6 +29,7 @@ ChartItem::ChartItem() {
 
         m_dataChanged = true;
 
+        // Online: luôn bám theo cửa sổ dữ liệu đang trượt
         resetViewportFromData();
 
         m_viewChanged = true;
@@ -101,8 +102,37 @@ void ChartItem::setChartColor(const QColor &color)
 
 
 
+void ChartItem::setDataMode(int mode)
+{
+    mode = qBound(0, mode, 1);
+    if (m_dataMode == mode)
+        return;
+
+    if (mode == 1) {
+        OnlineStream::instance()->stop();
+        DataManager::instance()->clear();
+        resetViewportFromData();
+        OnlineStream::instance()->start();
+    } else {
+        OnlineStream::instance()->stop();
+    }
+
+    m_dataMode = mode;
+    emit dataModeChanged();
+    m_viewChanged = true;
+    update();
+}
+
+
+
 bool ChartItem::loadDataFromFile(const QUrl &fileUrl)
 {
+    if (m_dataMode == 1) {
+        OnlineStream::instance()->stop();
+        m_dataMode = 0;
+        emit dataModeChanged();
+    }
+
     const QString path = fileUrl.isLocalFile()
             ? fileUrl.toLocalFile()
             : fileUrl.toString(QUrl::PreferLocalFile);
@@ -112,11 +142,12 @@ bool ChartItem::loadDataFromFile(const QUrl &fileUrl)
 
 
 void ChartItem::clearChart()
-
 {
-
     DataManager::instance()->clear();
-
+    if (m_dataMode == 1) {
+        OnlineStream::instance()->stop();
+        OnlineStream::instance()->start();
+    }
 }
 
 

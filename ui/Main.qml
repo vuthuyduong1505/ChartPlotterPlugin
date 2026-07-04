@@ -13,9 +13,18 @@ Window {
         id: myplotter
         anchors.fill: parent
         chartType: typeSelector.currentIndex
+        dataMode: modeSelector.currentIndex
         chartColor: "#f1c40f"
         Behavior on chartColor {
             ColorAnimation { duration: 150 }
+        }
+    }
+
+    Connections {
+        target: myplotter
+        function onDataModeChanged() {
+            if (modeSelector.currentIndex !== myplotter.dataMode)
+                modeSelector.currentIndex = myplotter.dataMode
         }
     }
 
@@ -53,6 +62,7 @@ Window {
 
         Button {
             text: "Nạp Dữ Liệu"
+            enabled: myplotter.dataMode === 0
             background: Rectangle {
                 implicitWidth: 130
                 implicitHeight: 36
@@ -88,6 +98,12 @@ Window {
         }
 
         ComboBox {
+            id: modeSelector
+            width: 130
+            model: ["Offline", "Online"]
+        }
+
+        ComboBox {
             id: typeSelector
             width: 140
             model: ["Line Chart", "Bar Chart", "Pie Chart"]
@@ -113,6 +129,6 @@ Window {
         anchors.margins: 12
         color: "#cccccc"
         font.pixelSize: 12
-        text: "Pan: chuột trái kéo | Zoom: con lăn/touchpad | Shift: zoom ngang | Ctrl: zoom dọc"
+        text: "Offline: nạp file | Online: stream real-time | Pan/Zoom: chuột | Shift/Ctrl: trục zoom"
     }
 }

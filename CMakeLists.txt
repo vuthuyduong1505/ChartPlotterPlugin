@@ -15,6 +15,8 @@ qt_add_executable(appQmlTest
     src/chartitem.cpp
     src/viewportmanager.h
     src/viewportmanager.cpp
+    src/onlinestream.h
+    src/onlinestream.cpp
     src/chartstrategy.h
     src/strategies/linechartstrategy.h
     src/strategies/linechartstrategy.cpp

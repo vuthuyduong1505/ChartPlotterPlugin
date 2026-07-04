@@ -5,6 +5,7 @@
 #include"strategies/piechartstrategy.h"
 #include"src/datamanager.h"
 #include"src/viewportmanager.h"
+#include"src/onlinestream.h"
 #include <QQuickFramebufferObject>
 #include<QOpenGLFunctions>
 #include<QColor>
@@ -19,6 +20,8 @@ class ChartItem : public QQuickFramebufferObject
     Q_OBJECT
     Q_PROPERTY(int chartType READ chartType WRITE setChartType NOTIFY chartTypeChanged)
     Q_PROPERTY(QColor chartColor READ chartColor WRITE setChartColor NOTIFY chartColorChanged)
+    // 0: offline (file), 1: online (real-time stream)
+    Q_PROPERTY(int dataMode READ dataMode WRITE setDataMode NOTIFY dataModeChanged)
 
 public:
     ChartItem();
@@ -33,6 +36,9 @@ public:
     // Các hàm đọc ghi biến chartColor
     QColor chartColor() const {return m_chartColor;}
     void setChartColor(const QColor &color);
+
+    int dataMode() const { return m_dataMode; }
+    void setDataMode(int mode);
 
     //Mở cổng API cho QML gọi xuống
     Q_INVOKABLE bool loadDataFromFile(const QUrl &fileUrl);
@@ -49,6 +55,7 @@ protected:
 signals:
     void chartTypeChanged(); // tín hiệu báo cho QML khi giá trị chartType thay đổi
     void chartColorChanged(); // tín hiệu phát ra khi màu thay đổi
+    void dataModeChanged();
 
 private:
     void resetViewportFromData();
@@ -59,6 +66,7 @@ private:
 
     int m_chartType=0; // line:0, bar:1, pie:2
     QColor m_chartColor;// biến lưu màu ở C++
+    int m_dataMode = 0; // 0: offline, 1: online
     bool m_dataChanged = false; // đánh dấu dữ liệu thay đổi từ GUI thread
     bool m_viewChanged = false; // đánh dấu viewport thay đổi (zoom/pan)
 
