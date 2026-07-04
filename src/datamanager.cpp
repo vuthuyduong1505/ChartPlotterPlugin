@@ -16,14 +16,15 @@ DataManager *DataManager::instance()
 
 void DataManager::addData(float x, float y)
 {
-    std::lock_guard<std::mutex>lock(mutex);
-    m_data.push_back({x,y});
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        m_data.push_back({x, y});
 
-    m_minX=std::min(m_minX,x);
-    m_maxX=std::max(m_maxX,x);
-    m_minY=std::min(m_minY,y);
-    m_maxY=std::max(m_maxY,y);
-    // phát tín hiệu cho những biểu đồ đang quan sát
+        m_minX = std::min(m_minX, x);
+        m_maxX = std::max(m_maxX, x);
+        m_minY = std::min(m_minY, y);
+        m_maxY = std::max(m_maxY, y);
+    }
     emit dataChanged();
 }
 
@@ -65,13 +66,14 @@ void DataManager::setData(const std::vector<DataPoint> &newData)
 
 void DataManager::clear()
 {
-   std::lock_guard<std::mutex> lock(mutex);
-   m_data.clear();
-   // khi xóa phải reset vè trạng thái ban đầu
-   m_minX=std::numeric_limits<float>::max(); // min khới tạo bằng số lớn nhất có thể
-   m_maxX=std::numeric_limits<float>::lowest();// max khởi đầu bằng số nhỏ nhất
-   m_minY=std::numeric_limits<float>::max();
-   m_maxY=std::numeric_limits<float>::lowest();
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        m_data.clear();
+        m_minX = std::numeric_limits<float>::max();
+        m_maxX = std::numeric_limits<float>::lowest();
+        m_minY = std::numeric_limits<float>::max();
+        m_maxY = std::numeric_limits<float>::lowest();
+    }
     emit dataChanged();
 }
 

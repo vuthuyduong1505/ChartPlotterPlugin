@@ -13,6 +13,8 @@ qt_add_executable(appQmlTest
     src/main.cpp
     src/chartitem.h
     src/chartitem.cpp
+    src/viewportmanager.h
+    src/viewportmanager.cpp
     src/chartstrategy.h
     src/strategies/linechartstrategy.h
     src/strategies/linechartstrategy.cpp

@@ -4,9 +4,12 @@
 #include"strategies/barchartstrategy.h"
 #include"strategies/piechartstrategy.h"
 #include"src/datamanager.h"
+#include"src/viewportmanager.h"
 #include <QQuickFramebufferObject>
 #include<QOpenGLFunctions>
 #include<QColor>
+#include<QPointF>
+#include<QUrl>
 #include<vector>
 
 
@@ -32,17 +35,38 @@ public:
     void setChartColor(const QColor &color);
 
     //Mở cổng API cho QML gọi xuống
-    Q_INVOKABLE bool loadDataFromFile(const QString &filePath);
+    Q_INVOKABLE bool loadDataFromFile(const QUrl &fileUrl);
     Q_INVOKABLE void clearChart();
+    Q_INVOKABLE void resetZoom();
+
+protected:
+    bool event(QEvent *event) override;
+    void wheelEvent(QWheelEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
+
 signals:
     void chartTypeChanged(); // tín hiệu báo cho QML khi giá trị chartType thay đổi
     void chartColorChanged(); // tín hiệu phát ra khi màu thay đổi
+
 private:
-    int m_chartType=0; // line:0, bar:1
+    void resetViewportFromData();
+    void applyZoomAt(float factor, const QPointF &pos, Qt::KeyboardModifiers mods);
+    ViewportManager::ZoomAxis zoomAxisFromModifiers(Qt::KeyboardModifiers mods) const;
+    float zoomFactorFromWheel(const QWheelEvent *event) const;
+    bool supportsViewportInteraction() const { return m_chartType != 2; } // Pie không dùng zoom/pan
+
+    int m_chartType=0; // line:0, bar:1, pie:2
     QColor m_chartColor;// biến lưu màu ở C++
     bool m_dataChanged = false; // đánh dấu dữ liệu thay đổi từ GUI thread
+    bool m_viewChanged = false; // đánh dấu viewport thay đổi (zoom/pan)
 
-    friend class ChartRenderer; // Cho phép Renderer truy cập m_dataChanged
+    ViewportManager m_viewport;
+    bool m_panning = false;
+    QPointF m_lastPanPos;
+
+    friend class ChartRenderer; // Cho phép Renderer truy cập m_dataChanged, m_viewport
 };
 
 // Luồng đồ họa
@@ -64,10 +88,15 @@ private:
 
     // Các biến đệm nội bộ trên Render Thread để đồng bộ hóa an toàn đa luồng
     std::vector<DataPoint> m_renderData;
-    float m_minX = 0.0f;
-    float m_maxX = 1.0f;
-    float m_minY = 0.0f;
-    float m_maxY = 1.0f;
+    float m_dataMinX = 0.0f;
+    float m_dataMaxX = 1.0f;
+    float m_dataMinY = 0.0f;
+    float m_dataMaxY = 1.0f;
+    // Viewport: phạm vi đang hiển thị (truyền vào shader để zoom/pan)
+    float m_viewMinX = 0.0f;
+    float m_viewMaxX = 1.0f;
+    float m_viewMinY = 0.0f;
+    float m_viewMaxY = 1.0f;
     bool m_dataDirty = false; // đánh dấu dữ liệu VBO cần được cập nhật lại
 
 };

@@ -1,78 +1,118 @@
 import QtQuick
 import MyChartLibrary 1.0
-import QtQuick.Controls 2.15 // thu viện nút bấm
+import QtQuick.Controls 2.15
 import QtQuick.Dialogs
+
 Window {
-    width: 640
-    height: 480
+    width: 800
+    height: 520
     visible: true
     title: qsTr("Test QML")
 
     MyChart {
-          id: myplotter
-           anchors.fill: parent // Cho biểu đồ tràn hết cửa sổ
-           chartType: typeSelector.currentIndex // lấy giá trị loại biểu đồ đnag chọn cho vào biến chartType
-           chartColor: "#f1c40f"
-           Behavior on chartColor {
-
-               ColorAnimation { duration: 150 }
-           }
-       }
-    ColorDialog{
-              id:colorDialog
-              onAccepted:{
-                     myplotter.chartColor=colorDialog.selectedColor
-                           }
+        id: myplotter
+        anchors.fill: parent
+        chartType: typeSelector.currentIndex
+        chartColor: "#f1c40f"
+        Behavior on chartColor {
+            ColorAnimation { duration: 150 }
+        }
     }
-     Row{
-            anchors.top: parent.top
-            anchors.right: parent.right
-            anchors.margins: 20
-            spacing: 15 // Khoảng cách giữa combo box và nút bấm
 
-       Button {
-              text: "Nạp Dữ Liệu"
+    ColorDialog {
+        id: colorDialog
+        onAccepted: myplotter.chartColor = colorDialog.selectedColor
+    }
 
-              // Định dạng một chút cho đẹp (Tùy chọn)
-              background: Rectangle {
-                     implicitWidth: 150
-                     implicitHeight: 40
-                     color: parent.down ? "#d0d0d0" : (parent.hovered ? "#e0e0e0" : "#ffffff")
-                     border.color: "#999999"
-                     radius: 4
-                        }
-
-            // HÀNH ĐỘNG KHI BẤM NÚT:
-              onClicked: {
-              // Ta gọi thẳng tên hàm Q_INVOKABLE đã mở cổng ở C++ xuống:
-                     var success = myplotter.loadDataFromFile("D:/QT/Project/Test/data.txt");
-
-                     if (success) {
-                                console.log("QML: Da nap file va tinh toan Min/Max thanh cong!");
-                     } else {
-                                console.log("QML: Doc file that bai! Kiểm tra lại đường dẫn.");
-                            }
-                        }
-                    }
-            Button{
-                     text:"Chọn màu"
-                     background: Rectangle {
-                                               implicitWidth: 150
-                                               implicitHeight: 40
-                                               color: parent.down ? "#d0d0d0" : (parent.hovered ? "#e0e0e0" : "#ffffff")
-                                               border.color: "#999999"
-                                               radius: 4
-                                           }
-                     onClicked: colorDialog.open()
+    FileDialog {
+        id: dataFileDialog
+        title: qsTr("Chọn file dữ liệu")
+        fileMode: FileDialog.OpenFile
+        nameFilters: ["Text files (*.txt)", "All files (*)"]
+        onAccepted: {
+            if (!selectedFile)
+                return
+            var success = myplotter.loadDataFromFile(selectedFile)
+            if (success) {
+                console.log("QML: Da nap file va tinh toan Min/Max thanh cong!")
+            } else {
+                console.log("QML: Doc file that bai! Kiem tra lai duong dan.")
             }
-      // menu chọn loại biểu đồ
-       ComboBox{
-           id:typeSelector
-           width: 150
-           model: ["Line Chart", "Bar Chart","Pie Chart"] // line:0, bar:1
-       }
+        }
+    }
+
+    // Flow thay Row: tự xuống dòng, không bị tràn khỏi màn hình
+    Flow {
+        id: toolbar
+        z: 1
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.margins: 12
+        spacing: 8
+
+        Button {
+            text: "Nạp Dữ Liệu"
+            background: Rectangle {
+                implicitWidth: 130
+                implicitHeight: 36
+                color: parent.down ? "#d0d0d0" : (parent.hovered ? "#e0e0e0" : "#ffffff")
+                border.color: "#999999"
+                radius: 4
+            }
+            onClicked: dataFileDialog.open()
+        }
+
+        Button {
+            text: "Xóa Dữ Liệu"
+            background: Rectangle {
+                implicitWidth: 120
+                implicitHeight: 36
+                color: parent.down ? "#d0d0d0" : (parent.hovered ? "#e0e0e0" : "#ffffff")
+                border.color: "#999999"
+                radius: 4
+            }
+            onClicked: myplotter.clearChart()
+        }
+
+        Button {
+            text: "Chọn màu"
+            background: Rectangle {
+                implicitWidth: 110
+                implicitHeight: 36
+                color: parent.down ? "#d0d0d0" : (parent.hovered ? "#e0e0e0" : "#ffffff")
+                border.color: "#999999"
+                radius: 4
+            }
+            onClicked: colorDialog.open()
+        }
+
+        ComboBox {
+            id: typeSelector
+            width: 140
+            model: ["Line Chart", "Bar Chart", "Pie Chart"]
+        }
+
+        Button {
+            text: "Reset Zoom"
+            background: Rectangle {
+                implicitWidth: 110
+                implicitHeight: 36
+                color: parent.down ? "#d0d0d0" : (parent.hovered ? "#e0e0e0" : "#ffffff")
+                border.color: "#999999"
+                radius: 4
+            }
+            onClicked: myplotter.resetZoom()
+        }
+    }
+
+    Text {
+        z: 1
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.margins: 12
+        color: "#cccccc"
+        font.pixelSize: 12
+        text: "Pan: chuột trái kéo | Zoom: con lăn/touchpad | Shift: zoom ngang | Ctrl: zoom dọc"
+    }
 }
-}
-
-
-
