@@ -1,0 +1,102 @@
+#include "chartrenderer.h"
+#include "chartitem.h"
+#include "dataprocessor.h"
+#include "strategies/linechartstrategy.h"
+#include "strategies/barchartstrategy.h"
+#include "strategies/piechartstrategy.h"
+#include <QOpenGLContext>
+#include <QOpenGLFramebufferObject>
+
+ChartRenderer::ChartRenderer()
+{
+    strategy = nullptr;
+}
+
+ChartRenderer::~ChartRenderer()
+{
+    if (strategy) {
+        delete strategy;
+        strategy = nullptr;
+    }
+}
+
+void ChartRenderer::synchronize(QQuickFramebufferObject *item)
+{
+    ChartItem *view = static_cast<ChartItem*>(item);
+
+    m_type = view->chartType();
+    m_color = view->chartColor();
+    m_lineStyle = view->lineStyle();
+
+    // ĐỒNG BỘ HÓA AN TOÀN ĐA LUỒNG
+    if (view->m_dataChanged || m_renderData.empty() || m_type != m_currentType) {
+        auto dm = DataManager::instance();
+        m_renderData = dm->getData();
+        if (m_renderData.empty()) {
+            m_dataMinX = 0.0f;
+            m_dataMaxX = 1.0f;
+            m_dataMinY = 0.0f;
+            m_dataMaxY = 1.0f;
+        } else {
+            DataProcessor::calculateBounds(m_renderData, m_dataMinX, m_dataMaxX, m_dataMinY, m_dataMaxY);
+        }
+        m_dataDirty = true;
+        view->m_dataChanged = false;
+    }
+
+    m_viewMinX = view->m_viewport.viewMinX();
+    m_viewMaxX = view->m_viewport.viewMaxX();
+    m_viewMinY = view->m_viewport.viewMinY();
+    m_viewMaxY = view->m_viewport.viewMaxY();
+    view->m_viewChanged = false;
+}
+
+void ChartRenderer::render()
+{
+    QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
+    f->glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
+    f->glClear(GL_COLOR_BUFFER_BIT);
+
+    if (m_type != m_currentType || strategy == nullptr) {
+        if (strategy) {
+            delete strategy;
+            strategy = nullptr;
+        }
+
+        // Factory Pattern
+        if (m_type == 0) {
+            strategy = new LineChartStrategy();
+        } else if (m_type == 1) {
+            strategy = new BarChartStrategy();
+        } else if (m_type == 2) {
+            strategy = new pieChartStrategy();
+        }
+
+        if (strategy != nullptr) strategy->init();
+        m_currentType = m_type;
+        m_dataDirty = true;
+    }
+
+    if (strategy) {
+        float drawMinX = m_viewMinX;
+        float drawMaxX = m_viewMaxX;
+        float drawMinY = m_viewMinY;
+        float drawMaxY = m_viewMaxY;
+
+        if (m_type == 2) {
+            drawMinX = m_dataMinX;
+            drawMaxX = m_dataMaxX;
+            drawMinY = m_dataMinY;
+            drawMaxY = m_dataMaxY;
+        }
+
+        strategy->draw(f, time, m_color, m_renderData,
+                       drawMinX, drawMaxX, drawMinY, drawMaxY, m_dataDirty, m_lineStyle);
+    }
+    m_dataDirty = false;
+}
+
+QOpenGLFramebufferObject *ChartRenderer::createFramebufferObject(const QSize &size)
+{
+    return new QOpenGLFramebufferObject(size);
+}

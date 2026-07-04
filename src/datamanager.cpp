@@ -1,11 +1,6 @@
 #include "datamanager.h"
 
 DataManager::DataManager(QObject *parent) : QObject{parent} {
-    // cài đặt thông số ban đầu khi chưa có dữ liệu nào
-    m_minX=std::numeric_limits<float>::max(); // min khới tạo bằng số lớn nhất có thể
-    m_maxX=std::numeric_limits<float>::lowest();// max khởi đầu bằng số nhỏ nhất
-        m_minY=std::numeric_limits<float>::max();
-    m_maxY=std::numeric_limits<float>::lowest();
 }
 
 DataManager *DataManager::instance()
@@ -19,11 +14,6 @@ void DataManager::addData(float x, float y)
     {
         std::lock_guard<std::mutex> lock(mutex);
         m_data.push_back({x, y});
-
-        m_minX = std::min(m_minX, x);
-        m_maxX = std::max(m_maxX, x);
-        m_minY = std::min(m_minY, y);
-        m_maxY = std::max(m_maxY, y);
     }
     emit dataChanged();
 }
@@ -37,31 +27,10 @@ std::vector<DataPoint> DataManager::getData()
 void DataManager::setData(const std::vector<DataPoint> &newData)
 {
     {
-    std::lock_guard<std::mutex> lock(mutex);
-
-    m_data=newData;
-    m_minX=std::numeric_limits<float>::max(); // min khới tạo bằng số lớn nhất có thể
-    m_maxX=std::numeric_limits<float>::lowest();// max khởi đầu bằng số nhỏ nhất
-    m_minY=std::numeric_limits<float>::max();
-    m_maxY=std::numeric_limits<float>::lowest();
-
-    // single pass: quét 1 lần toàn bộ mảng dữ liệu tĩnh để tìm min, max
-    for(const auto&p:m_data)
-    {
-        m_minX = std::min(m_minX, p.x);
-        m_maxX = std::max(m_maxX, p.x);
-        m_minY = std::min(m_minY, p.y);
-        m_maxY = std::max(m_maxY, p.y);
-    }
-    if (m_minX == m_maxX) {
-        m_maxX += 0.001f; // Nhích Max lên một tí tẹo
-    }
-    if (m_minY == m_maxY) {
-        m_maxY += 0.001f;
-    }
+        std::lock_guard<std::mutex> lock(mutex);
+        m_data=newData;
     }
     emit dataChanged();
-
 }
 
 void DataManager::clear()
@@ -69,10 +38,6 @@ void DataManager::clear()
     {
         std::lock_guard<std::mutex> lock(mutex);
         m_data.clear();
-        m_minX = std::numeric_limits<float>::max();
-        m_maxX = std::numeric_limits<float>::lowest();
-        m_minY = std::numeric_limits<float>::max();
-        m_maxY = std::numeric_limits<float>::lowest();
     }
     emit dataChanged();
 }

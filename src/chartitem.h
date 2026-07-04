@@ -1,17 +1,13 @@
 #ifndef CHARTITEM_H
 #define CHARTITEM_H
-#include"strategies/linechartstrategy.h"
-#include"strategies/barchartstrategy.h"
-#include"strategies/piechartstrategy.h"
-#include"src/datamanager.h"
-#include"src/viewportmanager.h"
-#include"src/onlinestream.h"
+
+#include "src/datamanager.h"
+#include "src/viewportmanager.h"
+#include "src/onlinestream.h"
 #include <QQuickFramebufferObject>
-#include<QOpenGLFunctions>
-#include<QColor>
-#include<QPointF>
-#include<QUrl>
-#include<vector>
+#include <QColor>
+#include <QPointF>
+#include <QUrl>
 
 
 // lớp ChartItem chạy trên luồng giao diện (GUI), lắng nghe chuột, bàn phím, kích thước cửa sổ
@@ -71,10 +67,14 @@ signals:
 
 private:
     void resetViewportFromData();
-    void applyZoomAt(float factor, const QPointF &pos, Qt::KeyboardModifiers mods);
     ViewportManager::ZoomAxis zoomAxisFromModifiers(Qt::KeyboardModifiers mods) const;
     float zoomFactorFromWheel(const QWheelEvent *event) const;
     bool supportsViewportInteraction() const { return m_chartType != 2; } // Pie không dùng zoom/pan
+
+    // Nhóm xử lý tương tác và dữ liệu (private helpers)
+    void processPan(const QPointF& delta);
+    void processZoom(float factor, const QPointF& center);
+    void updateAutoPanLogic();
 
     int m_chartType=0; // line:0, bar:1, pie:2
     QColor m_chartColor;// biến lưu màu ở C++
@@ -89,39 +89,6 @@ private:
     int m_lineStyle = 0; // 0: solid, 1: dashed, 2: dotted
 
     friend class ChartRenderer; // Cho phép Renderer truy cập m_dataChanged, m_viewport
-};
-
-// Luồng đồ họa
-class ChartRenderer : public QQuickFramebufferObject::Renderer, protected QOpenGLFunctions
-{
-public:
-    ChartRenderer();
-    ~ChartRenderer();
-    void render() override;
-     void synchronize(QQuickFramebufferObject *item) override;
-    QOpenGLFramebufferObject *createFramebufferObject(const QSize &size) override;
-
-private:
-    ChartStrategy *strategy=nullptr; // biến chung cho mọi loại biểu đồ
-    float time =0.0f;
-    int m_type=0;
-    int m_currentType=-1;
-    QColor m_color;
-    int m_lineStyle = 0;
-
-    // Các biến đệm nội bộ trên Render Thread để đồng bộ hóa an toàn đa luồng
-    std::vector<DataPoint> m_renderData;
-    float m_dataMinX = 0.0f;
-    float m_dataMaxX = 1.0f;
-    float m_dataMinY = 0.0f;
-    float m_dataMaxY = 1.0f;
-    // Viewport: phạm vi đang hiển thị (truyền vào shader để zoom/pan)
-    float m_viewMinX = 0.0f;
-    float m_viewMaxX = 1.0f;
-    float m_viewMinY = 0.0f;
-    float m_viewMaxY = 1.0f;
-    bool m_dataDirty = false; // đánh dấu dữ liệu VBO cần được cập nhật lại
-
 };
 
 #endif // CHARTITEM_H

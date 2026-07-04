@@ -13,6 +13,10 @@ qt_add_executable(appQmlTest
     src/main.cpp
     src/chartitem.h
     src/chartitem.cpp
+    src/chartrenderer.h
+    src/chartrenderer.cpp
+    src/dataprocessor.h
+    src/dataprocessor.cpp
     src/viewportmanager.h
     src/viewportmanager.cpp
     src/onlinestream.h

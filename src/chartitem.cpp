@@ -1,4 +1,6 @@
 #include "chartitem.h"
+#include "chartrenderer.h"
+#include "dataprocessor.h"
 
 #include "src/fileloader.h"
 
@@ -26,36 +28,7 @@ ChartItem::ChartItem() {
     // Kết nối: khi DataManager báo có dữ liệu mới, đặt cờ thay đổi và gọi update() để vẽ lại
     connect(DataManager::instance(), &DataManager::dataChanged, this, [this](){
         m_dataChanged = true;
-
-        if (m_dataMode == 1 && m_isAutoPanEnabled) {
-            auto dm = DataManager::instance();
-            if (!dm->getData().empty()) {
-                // Cập nhật lại phạm vi biên dữ liệu
-                m_viewport.resetToDataBounds(dm->minX(), dm->maxX(), dm->minY(), dm->maxY());
-
-                float currentMaxX = dm->maxX();
-                float FIXED_SPAN_X = 150.0f; // Khớp với FIXED_SPAN_X bên strategy
-
-                float newViewMinX = 0.0f;
-                float newViewMaxX = FIXED_SPAN_X;
-
-                if (currentMaxX > FIXED_SPAN_X) {
-                    // Giai đoạn 2: Đã vượt mép phải -> Kích hoạt Auto-Pan kéo camera lùi lại
-                    newViewMaxX = currentMaxX;
-                    newViewMinX = currentMaxX - FIXED_SPAN_X;
-                } else {
-                    // Giai đoạn 1: Chưa đầy màn hình -> Camera đứng im, đồ thị mọc từ trái sang phải
-                    newViewMinX = 0.0f;
-                    newViewMaxX = FIXED_SPAN_X;
-                }
-                m_viewport.setViewBoundsX(newViewMinX, newViewMaxX);
-            } else {
-                resetViewportFromData();
-            }
-        } else if (m_dataMode == 0) {
-            resetViewportFromData();
-        }
-
+        updateAutoPanLogic();
         m_viewChanged = true;
         update();
     });
@@ -65,23 +38,15 @@ ChartItem::ChartItem() {
 
 
 void ChartItem::resetViewportFromData()
-
 {
-
-    auto dm = DataManager::instance();
-
-    const auto data = dm->getData();
-
+    const auto data = DataManager::instance()->getData();
     if (data.empty()) {
-
         m_viewport.resetToDataBounds(0.0f, 1.0f, 0.0f, 1.0f);
-
         return;
-
     }
-
-    m_viewport.resetToDataBounds(dm->minX(), dm->maxX(), dm->minY(), dm->maxY());
-
+    float minX, maxX, minY, maxY;
+    DataProcessor::calculateBounds(data, minX, maxX, minY, maxY);
+    m_viewport.resetToDataBounds(minX, maxX, minY, maxY);
 }
 
 
@@ -233,7 +198,7 @@ ViewportManager::ZoomAxis ChartItem::zoomAxisFromModifiers(Qt::KeyboardModifiers
     return ViewportManager::ZoomBoth;
 }
 
-void ChartItem::applyZoomAt(float factor, const QPointF &pos, Qt::KeyboardModifiers mods)
+void ChartItem::processZoom(float factor, const QPointF& center)
 {
     if (!supportsViewportInteraction() || factor <= 0.0f)
         return;
@@ -244,8 +209,8 @@ void ChartItem::applyZoomAt(float factor, const QPointF &pos, Qt::KeyboardModifi
 
     float anchorX = 0.0f;
     float anchorY = 0.0f;
-    m_viewport.pixelToData(pos.x(), pos.y(), width(), height(), anchorX, anchorY);
-    m_viewport.zoom(factor, anchorX, anchorY, zoomAxisFromModifiers(mods));
+    m_viewport.pixelToData(center.x(), center.y(), width(), height(), anchorX, anchorY);
+    m_viewport.zoom(factor, anchorX, anchorY, zoomAxisFromModifiers(QGuiApplication::keyboardModifiers()));
     m_viewChanged = true;
     update();
 }
@@ -285,8 +250,7 @@ bool ChartItem::event(QEvent *event)
 
             const double zoomDelta = gesture->value();
             if (!qFuzzyIsNull(zoomDelta)) {
-                applyZoomAt(static_cast<float>(1.0 + zoomDelta), gesture->position(),
-                            QGuiApplication::keyboardModifiers());
+                processZoom(static_cast<float>(1.0 + zoomDelta), gesture->position());
             }
             event->accept();
             return true;
@@ -316,7 +280,7 @@ void ChartItem::wheelEvent(QWheelEvent *event)
         return;
     }
 
-    applyZoomAt(factor, event->position(), event->modifiers());
+    processZoom(factor, event->position());
     event->accept();
 }
 
@@ -376,15 +340,7 @@ void ChartItem::mouseMoveEvent(QMouseEvent *event)
 
 
 
-    m_viewport.panPixels(static_cast<float>(delta.x()),
-
-                         static_cast<float>(delta.y()),
-
-                         width(), height());
-
-    m_viewChanged = true;
-
-    update();
+    processPan(delta);
 
     event->accept();
 
@@ -406,222 +362,60 @@ void ChartItem::mouseReleaseEvent(QMouseEvent *event)
 
 
 
-void ChartRenderer::synchronize(QQuickFramebufferObject *item)
 
+
+
+
+void ChartItem::processPan(const QPointF& delta)
 {
-
-    ChartItem *view = static_cast<ChartItem*>(item);
-
-
-
-    // Gửi loại biểu đồ (0, 1, 2...) từ Item xuống Renderer
-
-    m_type = view->chartType();
-
-    m_color = view->chartColor();
-
-    m_lineStyle = view->lineStyle();
-
-
-
-    // ĐỒNG BỘ HÓA AN TOÀN ĐA LUỒNG:
-
-    // Copy dữ liệu khi GUI Thread đang bị block tạm thời trong synchronize().
-
-    // DataManager sử dụng std::mutex bên trong nên việc copy tại đây là tuyệt đối an toàn.
-
-    if (view->m_dataChanged || m_renderData.empty() || m_type != m_currentType) {
-
-        auto dm = DataManager::instance();
-
-        m_renderData = dm->getData();
-
-        m_dataMinX = dm->minX();
-
-        m_dataMaxX = dm->maxX();
-
-        m_dataMinY = dm->minY();
-
-        m_dataMaxY = dm->maxY();
-
-        m_dataDirty = true; // Đánh dấu dữ liệu bẩn để nạp VBO
-
-        view->m_dataChanged = false;
-
-    }
-
-
-
-    // Đồng bộ viewport (zoom/pan) xuống render thread
-
-    m_viewMinX = view->m_viewport.viewMinX();
-
-    m_viewMaxX = view->m_viewport.viewMaxX();
-
-    m_viewMinY = view->m_viewport.viewMinY();
-
-    m_viewMaxY = view->m_viewport.viewMaxY();
-
-    view->m_viewChanged = false;
-
+    m_viewport.panPixels(static_cast<float>(delta.x()),
+                         static_cast<float>(delta.y()),
+                         width(), height());
+    m_viewChanged = true;
+    update();
 }
 
+void ChartItem::updateAutoPanLogic()
+{
+    if (m_dataMode == 1 && m_isAutoPanEnabled) {
+        auto dm = DataManager::instance();
+        const auto data = dm->getData();
+        if (!data.empty()) {
+            float minX, maxX, minY, maxY;
+            DataProcessor::calculateBounds(data, minX, maxX, minY, maxY);
 
+            // Cập nhật lại phạm vi biên dữ liệu
+            m_viewport.resetToDataBounds(minX, maxX, minY, maxY);
+
+            float currentMaxX = maxX;
+            float FIXED_SPAN_X = 150.0f; // Khớp với FIXED_SPAN_X bên strategy
+
+            float newViewMinX = 0.0f;
+            float newViewMaxX = FIXED_SPAN_X;
+
+            if (currentMaxX > FIXED_SPAN_X) {
+                // Giai đoạn 2: Đã vượt mép phải -> Kích hoạt Auto-Pan kéo camera lùi lại
+                newViewMaxX = currentMaxX;
+                newViewMinX = currentMaxX - FIXED_SPAN_X;
+            } else {
+                // Giai đoạn 1: Chưa đầy màn hình -> Camera đứng im, đồ thị mọc từ trái sang phải
+                newViewMinX = 0.0f;
+                newViewMaxX = FIXED_SPAN_X;
+            }
+            m_viewport.setViewBoundsX(newViewMinX, newViewMaxX);
+        } else {
+            resetViewportFromData();
+        }
+    } else if (m_dataMode == 0) {
+        resetViewportFromData();
+    }
+}
 
 // khi QML cần hiện một cái gì đó thì
-
 //hàm này sẽ được gọi tự động để sinh ra hàm ChartRenderer
-
 QQuickFramebufferObject::Renderer *ChartItem::createRenderer() const
-
 {
-
     return new ChartRenderer();
-
-}
-
-
-
-//Hàm này được gọi đến và nhảy đến hàm render()
-
-// đóng vai trò như hàm initializeGL()
-
-ChartRenderer::ChartRenderer()
-
-{
-
-    strategy=nullptr;
-
-}
-
-
-
-ChartRenderer::~ChartRenderer()
-
-{
-
-    if (strategy) {
-
-        delete strategy;
-
-        strategy = nullptr;
-
-    }
-
-}
-
-
-
-//đây là hàm chính để code OpenGL vẽ các biểu đồ
-
-void ChartRenderer::render()
-
-{
-
-    QOpenGLFunctions *f =QOpenGLContext::currentContext()->functions();
-
-    f->glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
-
-    f->glClear(GL_COLOR_BUFFER_BIT);
-
-
-
-    // nếu biểu đồ được chọn khác với biểu đồ hiện tại
-
-    if (m_type != m_currentType || strategy == nullptr) {
-
-        // Xóa chiến thuật cũ để tránh tốn RAM
-
-        if (strategy)
-
-        {
-
-            delete strategy;
-
-            strategy=nullptr;
-
-        }
-
-
-
-        // Factory Pattern đơn giản ở đây:
-
-        if (m_type == 0) {
-
-            strategy = new LineChartStrategy();
-
-        } else if (m_type == 1) {
-
-            strategy = new BarChartStrategy();  
-
-        }
-
-        else if(m_type==2)
-
-        {
-
-            strategy=new pieChartStrategy();
-
-        }
-
-
-
-        if(strategy!=nullptr) strategy->init(); // khởi tạo Shader/VBO cho biểu đồ mới
-
-        m_currentType = m_type; // ghi nhớ loại biểu đồ hiện tại
-
-        m_dataDirty = true; // Strategy mới yêu cầu cập nhật lại VBO
-
-    }
-
-
-
-    // 2. THỰC HIỆN VẼ
-
-    // Line/Bar: dùng viewport bounds → shader chỉ vẽ phần đang zoom/pan
-
-    // Pie: dùng data bounds gốc (pie không áp dụng viewport)
-
-    if (strategy) {
-
-        float drawMinX = m_viewMinX;
-
-        float drawMaxX = m_viewMaxX;
-
-        float drawMinY = m_viewMinY;
-
-        float drawMaxY = m_viewMaxY;
-
-        if (m_type == 2) {
-
-            drawMinX = m_dataMinX;
-
-            drawMaxX = m_dataMaxX;
-
-            drawMinY = m_dataMinY;
-
-            drawMaxY = m_dataMaxY;
-
-        }
-
-        strategy->draw(f, time, m_color, m_renderData,
-
-                       drawMinX, drawMaxX, drawMinY, drawMaxY, m_dataDirty, m_lineStyle);
-
-    }
-
-    m_dataDirty = false; // Reset cờ bẩn sau khi vẽ
-
-}
-
-// kết quả vẽ được dán vào bộ đệm này và hiện ra màn hình
-
-QOpenGLFramebufferObject *ChartRenderer::createFramebufferObject(const QSize &size)
-
-{
-
-    return new QOpenGLFramebufferObject(size);
-
 }
 
 
