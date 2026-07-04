@@ -145,11 +145,12 @@ QVector4D pieChartStrategy::sliceColor(const QColor &base, int index, int total)
 void pieChartStrategy::draw(QOpenGLFunctions *f, float time, const QColor &color,
                             const std::vector<DataPoint> &rawData,
                             float minX, float maxX, float minY, float maxY,
-                            bool dataDirty)
+                            bool dataDirty, int lineStyle)
 {
     Q_UNUSED(time);
     Q_UNUSED(minY);
     Q_UNUSED(maxY);
+    Q_UNUSED(lineStyle);
 
     if (rawData.empty())
         return;

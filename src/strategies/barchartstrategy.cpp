@@ -28,8 +28,9 @@ void BarChartStrategy::init()
 void BarChartStrategy::draw(QOpenGLFunctions *f, float time, const QColor &color,
                              const std::vector<DataPoint> &rawData,
                              float minX, float maxX, float minY, float maxY,
-                             bool dataDirty)
+                             bool dataDirty, int lineStyle)
 {
+    Q_UNUSED(lineStyle);
     if (rawData.empty()) return;
 
     // Trục Y bảo vệ chia cho 0

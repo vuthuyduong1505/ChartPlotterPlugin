@@ -67,7 +67,7 @@ void LineChartStrategy::init()
 void LineChartStrategy::draw(QOpenGLFunctions *f, float time, const QColor &color,
                              const std::vector<DataPoint> &rawData,
                              float minX, float maxX, float minY, float maxY,
-                             bool dataDirty)
+                             bool dataDirty, int lineStyle)
 {
     if (rawData.empty()) return;
 
@@ -89,6 +89,7 @@ void LineChartStrategy::draw(QOpenGLFunctions *f, float time, const QColor &colo
 
     // 1. Vẽ lưới (Bypass mapping bằng cách đặt u_useMapping = 0)
     program->setUniformValue("u_useMapping", 0);
+    program->setUniformValue("u_lineStyle", 0); // Lưới vẽ nét liền
     program->setUniformValue("ourColor", QVector4D(0.2f, 0.2f, 0.2f, 1.0f));
     vboGrid.bind();
     program->setAttributeBuffer(0, GL_FLOAT, 0, 3, 3 * sizeof(float));
@@ -107,6 +108,7 @@ void LineChartStrategy::draw(QOpenGLFunctions *f, float time, const QColor &colo
     // 3. Vẽ đồ thị Line (Sử dụng camera động từ minX, maxX)
     // Thiết lập Uniforms để Shader thực hiện ánh xạ
     program->setUniformValue("u_useMapping", 1);
+    program->setUniformValue("u_lineStyle", lineStyle); // Áp dụng kiểu nét vẽ của đồ thị
     program->setUniformValue("u_minX", minX);
     program->setUniformValue("u_maxX", maxX);
     program->setUniformValue("u_minY", renderMinY);

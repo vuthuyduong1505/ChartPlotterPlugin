@@ -13,7 +13,7 @@ public:
     virtual void draw(QOpenGLFunctions *f, float time, const QColor &color,
                       const std::vector<DataPoint> &rawData,
                       float minX, float maxX, float minY, float maxY,
-                      bool dataDirty) =0; // thực hiện lệnh vẽ biểu đồ
+                      bool dataDirty, int lineStyle = 0) =0; // thực hiện lệnh vẽ biểu đồ
 
 };
 

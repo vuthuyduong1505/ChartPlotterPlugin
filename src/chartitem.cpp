@@ -155,6 +155,15 @@ void ChartItem::setIsAutoPanEnabled(bool enabled)
     }
 }
 
+void ChartItem::setLineStyle(int style)
+{
+    if (m_lineStyle != style) {
+        m_lineStyle = style;
+        emit lineStyleChanged();
+        update();
+    }
+}
+
 void ChartItem::pauseStream()
 {
     OnlineStream::instance()->pauseStream();
@@ -411,6 +420,8 @@ void ChartRenderer::synchronize(QQuickFramebufferObject *item)
 
     m_color = view->chartColor();
 
+    m_lineStyle = view->lineStyle();
+
 
 
     // ĐỒNG BỘ HÓA AN TOÀN ĐA LUỒNG:
@@ -595,7 +606,7 @@ void ChartRenderer::render()
 
         strategy->draw(f, time, m_color, m_renderData,
 
-                       drawMinX, drawMaxX, drawMinY, drawMaxY, m_dataDirty);
+                       drawMinX, drawMaxX, drawMinY, drawMaxY, m_dataDirty, m_lineStyle);
 
     }
 

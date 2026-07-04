@@ -17,7 +17,7 @@ public:
     void draw(QOpenGLFunctions *f, float time, const QColor &color,
               const std::vector<DataPoint> &rawData,
               float minX, float maxX, float minY, float maxY,
-              bool dataDirty) override;
+              bool dataDirty, int lineStyle = 0) override;
 
 private:
     static constexpr int kMaxDirectSlices = 12;

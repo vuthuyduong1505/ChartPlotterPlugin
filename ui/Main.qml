@@ -15,6 +15,7 @@ Window {
         anchors.margins: 40
         chartType: typeSelector.currentIndex
         dataMode: modeSelector.currentIndex
+        lineStyle: lineStyleSelector.currentIndex
         chartColor: "#f1c40f"
         Behavior on chartColor {
             ColorAnimation { duration: 150 }
@@ -142,6 +143,13 @@ Window {
             id: typeSelector
             width: 140
             model: ["Line Chart", "Bar Chart", "Pie Chart"]
+        }
+
+        ComboBox {
+            id: lineStyleSelector
+            visible: typeSelector.currentIndex === 0
+            width: 160
+            model: ["Nét liền (Solid)", "Nét đứt (Dashed)", "Nét chấm (Dotted)"]
         }
 
         Button {
