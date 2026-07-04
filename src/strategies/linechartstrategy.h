@@ -14,7 +14,7 @@ public:
     ~LineChartStrategy();
 
     void init() override;
-    void draw(QOpenGLFunctions *f, float time) override;
+    void draw(QOpenGLFunctions *f, float time, const QColor &color) override;
 
 private:
     QOpenGLShaderProgram *program;

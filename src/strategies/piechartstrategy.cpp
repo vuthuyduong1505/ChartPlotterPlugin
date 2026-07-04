@@ -24,7 +24,7 @@ void pieChartStrategy::init()
     program->release();
 }
 
-void pieChartStrategy::draw(QOpenGLFunctions *f, float time)
+void pieChartStrategy::draw(QOpenGLFunctions *f, float time, const QColor &color)
 {
     const auto rawData = DataManager::instance()->getData();
     if(rawData.empty())return;
@@ -39,12 +39,11 @@ void pieChartStrategy::draw(QOpenGLFunctions *f, float time)
     //tính tổng để ra tỉ lệ
     float total =countHigh+countLow+countMid;
     float ratios[3]={countLow/total, countMid/total,countHigh/total};
-    QVector4D colors[3] = {
-        QVector4D(0.9f, 0.3f, 0.3f, 1.0f), // Màu Đỏ (Thấp)
-        QVector4D(0.3f, 0.9f, 0.3f, 1.0f), // Màu Xanh lá (Trung bình)
-        QVector4D(0.3f, 0.3f, 0.9f, 1.0f)  // Màu Xanh dương (Cao)
+    std::vector<QVector4D> colors = {
+        QVector4D(color.redF() * 0.7f, color.greenF() * 0.7f, color.blueF() * 0.7f, 1.0f), // Miếng 1: Tối hơn (Shade)
+        QVector4D(color.redF(),        color.greenF(),        color.blueF(),        1.0f), // Miếng 2: Màu gốc (Base)
+        QVector4D(std::min(color.redF() * 1.3f, 1.0f), std::min(color.greenF() * 1.3f, 1.0f), std::min(color.blueF() * 1.3f, 1.0f), 1.0f) // Miếng 3: Sáng hơn (Tint)
     };
-
     program->bind();
     vao.bind();
     // Lấy kích thước cửa sổ và tính tỉ lệ bù trừ

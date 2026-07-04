@@ -69,7 +69,7 @@ float LineChartStrategy::mapvalue(float input, float inputMin, float inputMax, f
     return (outputMax - outputMin) * (input - inputMin) / (inputMax - inputMin) + outputMin;
 }
 
-void LineChartStrategy::draw(QOpenGLFunctions *f, float time)
+void LineChartStrategy::draw(QOpenGLFunctions *f, float time, const QColor &color)
 {
 
 //===VẼ LƯỚI TỪ BỘ NHỚ===
@@ -125,10 +125,8 @@ void LineChartStrategy::draw(QOpenGLFunctions *f, float time)
     // Gửi màu sắc từ c++ vào shader
     //   program->setUniformValue("ourColor", QVector4D(1.0f,1.0f,0.0f,1.0f)); // set màu vàng cho biến ourColor
     // tạo hiệu ứng đổi màu
-    float red =0.5f +0.5f* std::sin(time);
-    float green = 0.5f +0.5f*std::sin(time+2.0f);
-    float blue=0.5f+0.5f*std::sin(time+4.0f);
-    program->setUniformValue("ourColor", QVector4D(red, green, blue, 1.0f));
+   QVector4D glColor(color.redF(), color.greenF(), color.blueF(), 1.0f);
+    program->setUniformValue("ourColor",glColor);
 
     f->glLineWidth(2.0f);
     f->glDrawArrays(GL_LINE_STRIP,0,plotData.size()/3);

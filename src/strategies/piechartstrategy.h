@@ -13,7 +13,7 @@ public:
     pieChartStrategy();
     ~pieChartStrategy();
     void init() override;
-    void draw(QOpenGLFunctions *f, float time) override;
+    void draw(QOpenGLFunctions *f, float time, const QColor &color) override;
 
 private:
     QOpenGLBuffer vboPie;

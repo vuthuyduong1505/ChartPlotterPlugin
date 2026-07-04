@@ -17,6 +17,16 @@ void ChartItem::setChartType(int type)
     }
 }
 
+void ChartItem::setChartColor(const QColor &color)
+{
+    if(m_chartColor!=color)
+    {
+        m_chartColor=color;
+        emit chartColorChanged();
+        update();
+    }
+}
+
 bool ChartItem::loadDataFromFile(const QString &filePath)
 {
     return FileLoader::loadDataset(filePath);
@@ -33,6 +43,7 @@ void ChartRenderer::synchronize(QQuickFramebufferObject *item)
 
     // Gửi loại biểu đồ (0, 1, 2...) từ Item xuống Renderer
     m_type = view->chartType();
+    m_color=view->chartColor();
 
 }
 
@@ -92,7 +103,7 @@ void ChartRenderer::render()
 
     // 2. THỰC HIỆN VẼ
     if (strategy) {
-        strategy->draw(f, time);
+        strategy->draw(f, time, m_color);
     }
     time=time+0.05f;
     update();
