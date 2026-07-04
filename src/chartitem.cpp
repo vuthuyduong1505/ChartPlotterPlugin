@@ -33,9 +33,21 @@ ChartItem::ChartItem() {
                 // Cập nhật lại phạm vi biên dữ liệu
                 m_viewport.resetToDataBounds(dm->minX(), dm->maxX(), dm->minY(), dm->maxY());
 
-                // Trượt khung nhìn ngang sao cho cạnh phải khớp với điểm dữ liệu mới nhất, rộng 150.0f
-                float newViewMaxX = std::max(150.0f, dm->maxX());
-                float newViewMinX = newViewMaxX - 150.0f;
+                float currentMaxX = dm->maxX();
+                float FIXED_SPAN_X = 150.0f; // Khớp với FIXED_SPAN_X bên strategy
+
+                float newViewMinX = 0.0f;
+                float newViewMaxX = FIXED_SPAN_X;
+
+                if (currentMaxX > FIXED_SPAN_X) {
+                    // Giai đoạn 2: Đã vượt mép phải -> Kích hoạt Auto-Pan kéo camera lùi lại
+                    newViewMaxX = currentMaxX;
+                    newViewMinX = currentMaxX - FIXED_SPAN_X;
+                } else {
+                    // Giai đoạn 1: Chưa đầy màn hình -> Camera đứng im, đồ thị mọc từ trái sang phải
+                    newViewMinX = 0.0f;
+                    newViewMaxX = FIXED_SPAN_X;
+                }
                 m_viewport.setViewBoundsX(newViewMinX, newViewMaxX);
             } else {
                 resetViewportFromData();

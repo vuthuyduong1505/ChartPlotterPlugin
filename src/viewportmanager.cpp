@@ -106,8 +106,9 @@ void ViewportManager::clampViewport()
     rangeX = std::max(rangeX, dataRangeX * 0.01f);
     rangeY = std::max(rangeY, dataRangeY * 0.01f);
 
-    // Không cho zoom out rộng hơn 4 lần dữ liệu gốc
-    rangeX = std::min(rangeX, dataRangeX * 4.0f);
+    // Không cho zoom out rộng hơn 4 lần dữ liệu gốc (tối thiểu là 150.0f)
+    float maxRangeX = std::max(dataRangeX * 4.0f, 150.0f);
+    rangeX = std::min(rangeX, maxRangeX);
     rangeY = std::min(rangeY, dataRangeY * 4.0f);
 
     const float centerX = (m_viewMinX + m_viewMaxX) * 0.5f;
@@ -118,8 +119,8 @@ void ViewportManager::clampViewport()
     m_viewMinY = centerY - rangeY * 0.5f;
     m_viewMaxY = centerY + rangeY * 0.5f;
 
-    // Giữ viewport không trôi quá xa khỏi vùng dữ liệu (padding 50% mỗi phía)
-    const float padX = dataRangeX * 0.5f;
+    // Giữ viewport không trôi quá xa khỏi vùng dữ liệu (padding 50% mỗi phía, tối thiểu 150.0f)
+    const float padX = std::max(dataRangeX * 0.5f, 150.0f);
     const float padY = dataRangeY * 0.5f;
     const float limitMinX = m_dataMinX - padX;
     const float limitMaxX = m_dataMaxX + padX;
