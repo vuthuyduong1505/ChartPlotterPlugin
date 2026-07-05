@@ -8,6 +8,7 @@
 #include <QColor>
 #include <QPointF>
 #include <QUrl>
+#include <QVariantMap>
 
 
 // lớp ChartItem chạy trên luồng giao diện (GUI), lắng nghe chuột, bàn phím, kích thước cửa sổ
@@ -50,6 +51,7 @@ public:
     Q_INVOKABLE void resetZoom();
     Q_INVOKABLE void pauseStream();
     Q_INVOKABLE void resumeStream();
+    Q_INVOKABLE QVariantMap getNearestDataPoint(float mouseX, float mouseY, float screenWidth, float screenHeight);
 
 protected:
     bool event(QEvent *event) override;

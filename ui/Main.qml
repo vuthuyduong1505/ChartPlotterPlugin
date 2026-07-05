@@ -20,6 +20,119 @@ Window {
         Behavior on chartColor {
             ColorAnimation { duration: 150 }
         }
+
+        // Bản đồ dữ liệu của điểm gần nhất
+        readonly property var nearestPointMap: myplotter.getNearestDataPoint(
+            hoverHandler.point.position.x,
+            hoverHandler.point.position.y,
+            myplotter.width,
+            myplotter.height
+        )
+
+        // Bộ đón nhận sự kiện di chuột (không chặn sự kiện click/drag/zoom của biểu đồ)
+        HoverHandler {
+            id: hoverHandler
+        }
+
+        // Chấm tròn tiêu điểm (vàng rực rỡ, viền trắng) tại điểm bắt dính
+        Rectangle {
+            id: snapDot
+            width: 12
+            height: 12
+            radius: 6
+            color: "#f1c40f"
+            border.color: "#ffffff"
+            border.width: 1.5
+            x: myplotter.nearestPointMap.valid ? myplotter.nearestPointMap.screenX - width / 2 : 0
+            y: myplotter.nearestPointMap.valid ? myplotter.nearestPointMap.screenY - height / 2 : 0
+            visible: hoverHandler.hovered && myplotter.nearestPointMap.valid
+            z: 8
+        }
+
+        // Crosshair dọc
+        Rectangle {
+            id: crosshairVertical
+            width: 1
+            height: parent.height
+            color: "#60ffffff"
+            x: myplotter.nearestPointMap.valid ? myplotter.nearestPointMap.screenX : 0
+            visible: false
+            z: 5
+        }
+
+        // Crosshair ngang
+        Rectangle {
+            id: crosshairHorizontal
+            width: parent.width
+            height: 1
+            color: "#60ffffff"
+            y: myplotter.nearestPointMap.valid ? myplotter.nearestPointMap.screenY : 0
+            visible: false
+            z: 5
+        }
+
+        // Tooltip hiển thị tọa độ
+        Rectangle {
+            id: tooltip
+            color: "#e61e272c"
+            border.color: "#40ffffff"
+            border.width: 1
+            radius: 6
+            visible: hoverHandler.hovered && myplotter.nearestPointMap.valid
+            z: 10
+
+            width: tooltipLayout.width + 16
+            height: tooltipLayout.height + 12
+
+            // Căn lề thông minh tránh bị khuất ở các cạnh biên
+            x: {
+                var mx = myplotter.nearestPointMap.valid ? myplotter.nearestPointMap.screenX : 0;
+                var targetX = mx + 12;
+                if (targetX + width > parent.width) {
+                    targetX = mx - width - 12;
+                }
+                return Math.max(4, Math.min(parent.width - width - 4, targetX));
+            }
+            y: {
+                var my = myplotter.nearestPointMap.valid ? myplotter.nearestPointMap.screenY : 0;
+                var targetY = my - height - 12;
+                if (targetY < 4) {
+                    targetY = my + 12;
+                }
+                return Math.max(4, Math.min(parent.height - height - 4, targetY));
+            }
+
+            Column {
+                id: tooltipLayout
+                anchors.centerIn: parent
+                spacing: 4
+
+                Text {
+                    color: "#ffffff"
+                    font.pixelSize: 11
+                    font.bold: true
+                    font.family: "Monospace"
+                    // Nếu là Pie Chart thì in ra %, ngược lại in ra X
+                    text: myplotter.nearestPointMap.valid 
+                          ? (myplotter.nearestPointMap.isPie 
+                             ? myplotter.nearestPointMap.percent.toFixed(1) + "%" 
+                             : "X: " + myplotter.nearestPointMap.dataX.toFixed(3)) 
+                          : ""
+                }
+
+                Text {
+                    color: "#f1c40f"
+                    font.pixelSize: 11
+                    font.bold: true
+                    font.family: "Monospace"
+                    // Ẩn hoàn toàn dòng Y nếu đang ở chế độ Pie Chart
+                    visible: myplotter.nearestPointMap.valid && !myplotter.nearestPointMap.isPie
+                    text: myplotter.nearestPointMap.valid && !myplotter.nearestPointMap.isPie 
+                          ? "Y: " + myplotter.nearestPointMap.dataY.toFixed(3) 
+                          : ""
+                }
+            }
+        }
     }
 
     Connections {
@@ -153,6 +266,7 @@ Window {
         }
 
         Button {
+            visible: myplotter.dataMode === 0
             text: "Reset Zoom"
             background: Rectangle {
                 implicitWidth: 110

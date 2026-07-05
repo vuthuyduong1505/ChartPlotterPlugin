@@ -14,6 +14,7 @@
 #include <QEvent>
 #include <QGuiApplication>
 #include <QtMath>
+#include <algorithm>
 
 
 
@@ -416,6 +417,253 @@ void ChartItem::updateAutoPanLogic()
 QQuickFramebufferObject::Renderer *ChartItem::createRenderer() const
 {
     return new ChartRenderer();
+}
+
+QVariantMap ChartItem::getNearestDataPoint(float mouseX, float mouseY, float screenWidth, float screenHeight)
+{
+    QVariantMap result;
+    result["valid"] = false;
+    result["dataX"] = 0.0f;
+    result["dataY"] = 0.0f;
+    result["screenX"] = 0.0f;
+    result["screenY"] = 0.0f;
+    result["isPie"] = false;
+    result["percent"] = 0.0f;
+
+    if (screenWidth <= 0.0f || screenHeight <= 0.0f) {
+        return result;
+    }
+
+    const auto &data = DataManager::instance()->getData();
+    if (data.empty()) {
+        return result;
+    }
+
+    // Bước 1: Ánh xạ ngược mouseX sang giá trị targetDataX
+    float xGL = (mouseX / screenWidth) * 2.0f - 1.0f;
+    float mapMinX = -1.0f;
+    float mapMaxX = 1.0f;
+    if (m_chartType == 1) { // Bar Chart
+        mapMinX = -0.9f;
+        mapMaxX = 0.9f;
+    }
+    float mapMinY = -1.0f;
+    float mapMaxY = 1.0f;
+
+    float u_minX = m_viewport.viewMinX();
+    float u_maxX = m_viewport.viewMaxX();
+
+    float denX = (u_maxX - u_minX) == 0.0f ? 0.001f : (u_maxX - u_minX);
+    float targetDataX = u_minX + (xGL - mapMinX) * denX / (mapMaxX - mapMinX);
+
+    // Ràng buộc targetDataX trong khoảng dữ liệu thực tế hiện có để tránh ngoại suy lỗi
+    targetDataX = std::max(data.front().x, std::min(data.back().x, targetDataX));
+
+    // Bước 2: Tìm kiếm nhị phân tìm 2 điểm dữ liệu liền kề bao bọc targetDataX
+    auto it = std::lower_bound(data.begin(), data.end(), targetDataX,
+        [](const DataPoint &dp, float val) {
+            return dp.x < val;
+        });
+
+    DataPoint p1, p2;
+    if (data.size() == 1) {
+        p1 = data[0];
+        p2 = data[0];
+    } else if (it == data.begin()) {
+        p1 = data[0];
+        p2 = data[1];
+    } else if (it == data.end()) {
+        p1 = data[data.size() - 2];
+        p2 = data[data.size() - 1];
+    } else {
+        p2 = *it;
+        p1 = *(it - 1);
+    }
+
+    if (m_chartType == 0) {
+        // --- LINE CHART: Nội suy tuyến tính Y ---
+        float interpolatedDataY = p1.y;
+        if (p2.x - p1.x != 0.0f) {
+            interpolatedDataY = p1.y + (p2.y - p1.y) * ((targetDataX - p1.x) / (p2.x - p1.x));
+        }
+
+        // Ánh xạ xuôi (Forward Mapping) để chuyển (targetDataX, interpolatedDataY) về pixel màn hình
+        float snappedXGL = (mapMaxX - mapMinX) * (targetDataX - u_minX) / denX + mapMinX;
+
+        float u_minY = m_viewport.viewMinY();
+        float u_maxY = m_viewport.viewMaxY();
+        if (qAbs(u_maxY - u_minY) < 0.0001f) {
+            u_maxY += 1.0f;
+            u_minY -= 1.0f;
+        }
+        float paddingY = (u_maxY - u_minY) * 0.2f;
+        u_minY -= paddingY;
+        u_maxY += paddingY;
+
+        float denY = (u_maxY - u_minY) == 0.0f ? 0.001f : (u_maxY - u_minY);
+        float snappedYGL = (mapMaxY - mapMinY) * (interpolatedDataY - u_minY) / denY + mapMinY;
+
+        float lineScreenY = (1.0f - snappedYGL) * 0.5f * screenHeight;
+
+        // Kiểm tra khoảng cách dọc (Hit Testing cho Line Chart)
+        float distanceY = qAbs(mouseY - lineScreenY);
+
+        if (distanceY <= 15.0f) {
+            result["valid"] = true;
+            result["dataX"] = targetDataX;
+            result["dataY"] = interpolatedDataY;
+            result["screenX"] = mouseX; // Bám trơn tru theo con trỏ chuột
+            result["screenY"] = lineScreenY; // Hút thẳng vào nét vẽ
+        } else {
+            result["valid"] = false;
+        }
+    } else if (m_chartType == 1) {
+        // --- BAR CHART: PIXEL-PERFECT HIT TESTING ---
+        float u_minY = m_viewport.viewMinY();
+        float u_maxY = m_viewport.viewMaxY();
+        if (qAbs(u_maxY - u_minY) < 0.0001f) {
+            u_maxY += 1.0f;
+            u_minY -= 1.0f;
+        }
+        float paddingY = (u_maxY - u_minY) * 0.2f;
+        u_minY -= paddingY;
+        u_maxY += paddingY;
+        float denY = (u_maxY - u_minY) == 0.0f ? 0.001f : (u_maxY - u_minY);
+
+        // 1. Tính bề rộng chuẩn của cột trên màn hình pixel (Đồng bộ tuyệt đối với shader: 0.015f * mapRangeX)
+        float mapRangeX = mapMaxX - mapMinX; 
+        float pixelHalfWidth = mapRangeX * 0.015f * 0.5f * screenWidth;
+        
+        // 2. Tính tọa độ Y của đáy cột (zeroScreenY)
+        float zeroYGL = (mapMaxY - mapMinY) * (0.0f - u_minY) / denY + mapMinY;
+        float zeroScreenY = (1.0f - zeroYGL) * 0.5f * screenHeight;
+
+        // 3. Hàm Lambda phụ trợ: Ánh xạ 1 điểm ra màn hình và kiểm tra chuột có nằm trong hình chữ nhật của nó không
+        auto checkHit = [&](const DataPoint& p, float& screenX, float& screenY) -> bool {
+            // Ánh xạ X
+            float pXGL = (mapMaxX - mapMinX) * (p.x - u_minX) / denX + mapMinX;
+            screenX = (pXGL + 1.0f) * 0.5f * screenWidth;
+            // Ánh xạ Y
+            float pYGL = (mapMaxY - mapMinY) * (p.y - u_minY) / denY + mapMinY;
+            screenY = (1.0f - pYGL) * 0.5f * screenHeight;
+            
+            // Kiểm tra chuột có nằm trong vùng Pixel Rectangle của cột (mở rộng 1px chống nhiễu)
+            bool withinX = (mouseX >= screenX - pixelHalfWidth - 1.0f) && (mouseX <= screenX + pixelHalfWidth + 1.0f);
+            float minYBound = qMin(screenY, zeroScreenY);
+            float maxYBound = qMax(screenY, zeroScreenY);
+            bool withinY = (mouseY >= minYBound) && (mouseY <= maxYBound);
+            
+            return withinX && withinY;
+        };
+
+        // 4. Áp dụng kiểm tra trực tiếp Hitbox cho cả 2 điểm p1 và p2
+        float sX1 = 0, sY1 = 0, sX2 = 0, sY2 = 0;
+        bool hit1 = checkHit(p1, sX1, sY1);
+        bool hit2 = checkHit(p2, sX2, sY2);
+
+        if (hit1) {
+            result["valid"] = true;
+            result["dataX"] = p1.x;
+            result["dataY"] = p1.y;
+            result["screenX"] = sX1;
+            result["screenY"] = sY1;
+        } else if (hit2) {
+            result["valid"] = true;
+            result["dataX"] = p2.x;
+            result["dataY"] = p2.y;
+            result["screenX"] = sX2;
+            result["screenY"] = sY2;
+        } else {
+            result["valid"] = false;
+        }
+    } else if (m_chartType == 2) {
+        // --- PIE CHART: HIT-TESTING ĐỒNG BỘ VỚI OPENGL ---
+        float cx = screenWidth / 2.0f;
+        float cy = screenHeight / 2.0f;
+        // Bán kính 0.6f theo chuẩn code PieChartStrategy
+        float radius = 0.6f * (qMin(screenWidth, screenHeight) / 2.0f); 
+
+        float dx = mouseX - cx;
+        // QUAN TRỌNG: Lật ngược trục Y (cy - mouseY) để đồng bộ với hàm sin/cos của OpenGL
+        float dy = cy - mouseY; 
+        float dist = std::sqrt(dx * dx + dy * dy);
+
+        if (dist <= radius) {
+            // Đồng bộ thuật toán computeSliceWeights của pieChartStrategy
+            struct SliceInfo {
+                float weight;
+                float dataX;
+                float dataY;
+            };
+            std::vector<SliceInfo> slices;
+
+            float minX = data.front().x;
+            float maxX = data.back().x;
+            constexpr int kMaxDirectSlices = 12;
+            constexpr int kBinSliceCount = 8;
+
+            if (data.size() <= kMaxDirectSlices) {
+                for (const auto& p : data) {
+                    float w = qMax(p.y, 0.0f);
+                    if (w > 0.0f) {
+                        slices.push_back({w, p.x, p.y});
+                    }
+                }
+            } else {
+                std::vector<float> binWeights(kBinSliceCount, 0.0f);
+                std::vector<float> binXSum(kBinSliceCount, 0.0f);
+                std::vector<int> binCount(kBinSliceCount, 0);
+                
+                float rangeX = maxX - minX;
+                if (rangeX < 1e-6f) rangeX = 1.0f;
+
+                for (const auto& p : data) {
+                    int bin = static_cast<int>((p.x - minX) / rangeX * kBinSliceCount);
+                    bin = std::min(std::max(bin, 0), kBinSliceCount - 1);
+                    float w = qMax(p.y, 0.0f);
+                    binWeights[bin] += w;
+                    binXSum[bin] += p.x;
+                    binCount[bin]++;
+                }
+
+                for (int i = 0; i < kBinSliceCount; ++i) {
+                    if (binWeights[i] > 0.0f) {
+                        float avgX = binCount[i] > 0 ? (binXSum[i] / binCount[i]) : 0.0f;
+                        slices.push_back({binWeights[i], avgX, binWeights[i]});
+                    }
+                }
+            }
+
+            float totalSum = 0.0f;
+            for (const auto& s : slices) {
+                totalSum += s.weight;
+            }
+
+            if (totalSum > 0.0f) {
+                float mouseAngle = std::atan2(dy, dx) * 180.0f / M_PI;
+                if (mouseAngle < 0.0f) mouseAngle += 360.0f;
+
+                float currentAngle = 0.0f;
+                for (const auto& s : slices) {
+                    float sliceAngle = (s.weight / totalSum) * 360.0f;
+                    
+                    if (sliceAngle > 0.0f && mouseAngle >= currentAngle && mouseAngle < currentAngle + sliceAngle) {
+                        result["valid"] = true;
+                        result["isPie"] = true; // Bật cờ Pie Chart
+                        result["percent"] = (s.weight / totalSum) * 100.0f; // Tính %
+                        result["dataX"] = s.dataX;
+                        result["dataY"] = s.dataY;
+                        result["screenX"] = mouseX; 
+                        result["screenY"] = mouseY;
+                        break;
+                    }
+                    currentAngle += sliceAngle;
+                }
+            }
+        }
+    }
+
+    return result;
 }
 
 
