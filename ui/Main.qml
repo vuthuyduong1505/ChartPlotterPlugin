@@ -21,6 +21,8 @@ Window {
             ColorAnimation { duration: 150 }
         }
 
+        property bool isCropMode: false
+
         // Bản đồ dữ liệu của điểm gần nhất
         readonly property var nearestPointMap: myplotter.getNearestDataPoint(
             hoverHandler.point.position.x,
@@ -131,6 +133,73 @@ Window {
                           ? "Y: " + myplotter.nearestPointMap.dataY.toFixed(3) 
                           : ""
                 }
+            }
+        }
+
+        // Rubber Band selection rectangle
+        Rectangle {
+            id: cropRect
+            visible: false
+            color: "#300096ff"
+            border.color: "#0096ff"
+            border.width: 1
+            z: 15
+        }
+
+        // Intercept mouse clicks and drags in Crop Mode
+        MouseArea {
+            anchors.fill: parent
+            enabled: myplotter.isCropMode
+            cursorShape: enabled ? Qt.CrossCursor : Qt.ArrowCursor
+            z: 14
+
+            property real startX: 0
+            property real startY: 0
+
+            onPressed: (mouse) => {
+                startX = mouse.x
+                startY = mouse.y
+                cropRect.x = startX
+                cropRect.y = startY
+                cropRect.width = 0
+                cropRect.height = 0
+                cropRect.visible = true
+            }
+
+            onPositionChanged: (mouse) => {
+                var curX = Math.max(0, Math.min(myplotter.width, mouse.x))
+                var curY = Math.max(0, Math.min(myplotter.height, mouse.y))
+
+                cropRect.x = Math.min(startX, curX)
+                cropRect.y = Math.min(startY, curY)
+                cropRect.width = Math.abs(curX - startX)
+                cropRect.height = Math.abs(curY - startY)
+            }
+
+            onReleased: (mouse) => {
+                cropRect.visible = false
+                var selW = cropRect.width
+                var selH = cropRect.height
+
+                if (selW > 5 && selH > 5) {
+                    var newZoomX = myplotter.zoomX * (myplotter.width / selW)
+                    var newZoomY = myplotter.zoomY * (myplotter.height / selH)
+
+                    var dataRangeX = myplotter.dataMaxX - myplotter.dataMinX
+                    var dataRangeY = myplotter.dataMaxY - myplotter.dataMinY
+                    var viewRangeX = dataRangeX / myplotter.zoomX
+                    var viewRangeY = dataRangeY / myplotter.zoomY
+
+                    var newPanX = myplotter.panX + (cropRect.x / myplotter.width) * viewRangeX
+                    var newPanY = myplotter.panY + ((myplotter.height - (cropRect.y + cropRect.height)) / myplotter.height) * viewRangeY
+
+                    myplotter.zoomX = newZoomX
+                    myplotter.zoomY = newZoomY
+                    myplotter.panX = newPanX
+                    myplotter.panY = newPanY
+                }
+
+                myplotter.isCropMode = false
             }
         }
     }
@@ -276,6 +345,19 @@ Window {
                 radius: 4
             }
             onClicked: myplotter.resetZoom()
+        }
+
+        Button {
+            visible: myplotter.chartType !== 2
+            text: myplotter.isCropMode ? "[X]" : "Chế độ Crop"
+            background: Rectangle {
+                implicitWidth: 130
+                implicitHeight: 36
+                color: parent.down ? "#d0d0d0" : (myplotter.isCropMode ? "#ffcccc" : (parent.hovered ? "#e0e0e0" : "#ffffff"))
+                border.color: "#999999"
+                radius: 4
+            }
+            onClicked: myplotter.isCropMode = !myplotter.isCropMode
         }
     }
 

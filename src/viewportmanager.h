@@ -16,6 +16,7 @@ public:
 
     void resetToDataBounds(float minX, float maxX, float minY, float maxY);
     void setViewBoundsX(float minX, float maxX);
+    void setViewBoundsY(float minY, float maxY);
 
     // factor > 1: zoom in (thu hẹp viewport), factor < 1: zoom out
     // anchorX/Y: điểm neo trong không gian dữ liệu (thường là vị trí con trỏ)
@@ -28,6 +29,11 @@ public:
     float viewMaxX() const { return m_viewMaxX; }
     float viewMinY() const { return m_viewMinY; }
     float viewMaxY() const { return m_viewMaxY; }
+
+    float dataMinX() const { return m_dataMinX; }
+    float dataMaxX() const { return m_dataMaxX; }
+    float dataMinY() const { return m_dataMinY; }
+    float dataMaxY() const { return m_dataMaxY; }
 
     // Chuyển tọa độ pixel (gốc trên-trái) sang tọa độ dữ liệu — dùng làm điểm neo khi zoom
     void pixelToData(float px, float py, float widgetWidth, float widgetHeight,

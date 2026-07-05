@@ -43,11 +43,21 @@ void ChartItem::resetViewportFromData()
     const auto data = DataManager::instance()->getData();
     if (data.empty()) {
         m_viewport.resetToDataBounds(0.0f, 1.0f, 0.0f, 1.0f);
+        emit zoomXChanged();
+        emit zoomYChanged();
+        emit panXChanged();
+        emit panYChanged();
+        emit dataBoundsChanged();
         return;
     }
     float minX, maxX, minY, maxY;
     DataProcessor::calculateBounds(data, minX, maxX, minY, maxY);
     m_viewport.resetToDataBounds(minX, maxX, minY, maxY);
+    emit zoomXChanged();
+    emit zoomYChanged();
+    emit panXChanged();
+    emit panYChanged();
+    emit dataBoundsChanged();
 }
 
 
@@ -213,6 +223,10 @@ void ChartItem::processZoom(float factor, const QPointF& center)
     m_viewport.pixelToData(center.x(), center.y(), width(), height(), anchorX, anchorY);
     m_viewport.zoom(factor, anchorX, anchorY, zoomAxisFromModifiers(QGuiApplication::keyboardModifiers()));
     m_viewChanged = true;
+    emit zoomXChanged();
+    emit zoomYChanged();
+    emit panXChanged();
+    emit panYChanged();
     update();
 }
 
@@ -373,6 +387,8 @@ void ChartItem::processPan(const QPointF& delta)
                          static_cast<float>(delta.y()),
                          width(), height());
     m_viewChanged = true;
+    emit panXChanged();
+    emit panYChanged();
     update();
 }
 
@@ -404,6 +420,11 @@ void ChartItem::updateAutoPanLogic()
                 newViewMaxX = FIXED_SPAN_X;
             }
             m_viewport.setViewBoundsX(newViewMinX, newViewMaxX);
+            emit zoomXChanged();
+            emit zoomYChanged();
+            emit panXChanged();
+            emit panYChanged();
+            emit dataBoundsChanged();
         } else {
             resetViewportFromData();
         }
@@ -665,5 +686,60 @@ QVariantMap ChartItem::getNearestDataPoint(float mouseX, float mouseY, float scr
 
     return result;
 }
+
+float ChartItem::zoomX() const {
+    float dataRange = m_viewport.dataMaxX() - m_viewport.dataMinX();
+    float viewRange = m_viewport.viewMaxX() - m_viewport.viewMinX();
+    return viewRange > 0.0f ? (dataRange / viewRange) : 1.0f;
+}
+void ChartItem::setZoomX(float val) {
+    if (val <= 0.0f) return;
+    float dataRange = m_viewport.dataMaxX() - m_viewport.dataMinX();
+    if (dataRange <= 0.0f) dataRange = 1.0f;
+    float newRange = dataRange / val;
+    m_viewport.setViewBoundsX(m_viewport.viewMinX(), m_viewport.viewMinX() + newRange);
+    m_viewChanged = true;
+    emit zoomXChanged();
+    update();
+}
+float ChartItem::zoomY() const {
+    float dataRange = m_viewport.dataMaxY() - m_viewport.dataMinY();
+    float viewRange = m_viewport.viewMaxY() - m_viewport.viewMinY();
+    return viewRange > 0.0f ? (dataRange / viewRange) : 1.0f;
+}
+void ChartItem::setZoomY(float val) {
+    if (val <= 0.0f) return;
+    float dataRange = m_viewport.dataMaxY() - m_viewport.dataMinY();
+    if (dataRange <= 0.0f) dataRange = 1.0f;
+    float newRange = dataRange / val;
+    m_viewport.setViewBoundsY(m_viewport.viewMinY(), m_viewport.viewMinY() + newRange);
+    m_viewChanged = true;
+    emit zoomYChanged();
+    update();
+}
+float ChartItem::panX() const {
+    return m_viewport.viewMinX();
+}
+void ChartItem::setPanX(float val) {
+    float viewRange = m_viewport.viewMaxX() - m_viewport.viewMinX();
+    m_viewport.setViewBoundsX(val, val + viewRange);
+    m_viewChanged = true;
+    emit panXChanged();
+    update();
+}
+float ChartItem::panY() const {
+    return m_viewport.viewMinY();
+}
+void ChartItem::setPanY(float val) {
+    float viewRange = m_viewport.viewMaxY() - m_viewport.viewMinY();
+    m_viewport.setViewBoundsY(val, val + viewRange);
+    m_viewChanged = true;
+    emit panYChanged();
+    update();
+}
+float ChartItem::dataMinX() const { return m_viewport.dataMinX(); }
+float ChartItem::dataMaxX() const { return m_viewport.dataMaxX(); }
+float ChartItem::dataMinY() const { return m_viewport.dataMinY(); }
+float ChartItem::dataMaxY() const { return m_viewport.dataMaxY(); }
 
 

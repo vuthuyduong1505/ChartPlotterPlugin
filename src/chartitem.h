@@ -21,6 +21,14 @@ class ChartItem : public QQuickFramebufferObject
     Q_PROPERTY(int dataMode READ dataMode WRITE setDataMode NOTIFY dataModeChanged)
     Q_PROPERTY(bool isAutoPanEnabled READ isAutoPanEnabled WRITE setIsAutoPanEnabled NOTIFY isAutoPanEnabledChanged)
     Q_PROPERTY(int lineStyle READ lineStyle WRITE setLineStyle NOTIFY lineStyleChanged)
+    Q_PROPERTY(float zoomX READ zoomX WRITE setZoomX NOTIFY zoomXChanged)
+    Q_PROPERTY(float zoomY READ zoomY WRITE setZoomY NOTIFY zoomYChanged)
+    Q_PROPERTY(float panX READ panX WRITE setPanX NOTIFY panXChanged)
+    Q_PROPERTY(float panY READ panY WRITE setPanY NOTIFY panYChanged)
+    Q_PROPERTY(float dataMinX READ dataMinX NOTIFY dataBoundsChanged)
+    Q_PROPERTY(float dataMaxX READ dataMaxX NOTIFY dataBoundsChanged)
+    Q_PROPERTY(float dataMinY READ dataMinY NOTIFY dataBoundsChanged)
+    Q_PROPERTY(float dataMaxY READ dataMaxY NOTIFY dataBoundsChanged)
 
 public:
     ChartItem();
@@ -45,6 +53,19 @@ public:
     int lineStyle() const { return m_lineStyle; }
     void setLineStyle(int style);
 
+    float zoomX() const;
+    void setZoomX(float val);
+    float zoomY() const;
+    void setZoomY(float val);
+    float panX() const;
+    void setPanX(float val);
+    float panY() const;
+    void setPanY(float val);
+    float dataMinX() const;
+    float dataMaxX() const;
+    float dataMinY() const;
+    float dataMaxY() const;
+
     //Mở cổng API cho QML gọi xuống
     Q_INVOKABLE bool loadDataFromFile(const QUrl &fileUrl);
     Q_INVOKABLE void clearChart();
@@ -66,6 +87,11 @@ signals:
     void dataModeChanged();
     void isAutoPanEnabledChanged();
     void lineStyleChanged();
+    void zoomXChanged();
+    void zoomYChanged();
+    void panXChanged();
+    void panYChanged();
+    void dataBoundsChanged();
 
 private:
     void resetViewportFromData();
