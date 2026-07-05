@@ -1,4 +1,5 @@
 #include "barchartstrategy.h"
+#include "src/dataprocessor.h"
 #include <cmath>
 
 static float barGridStep(float range)
@@ -123,9 +124,7 @@ void BarChartStrategy::draw(QOpenGLFunctions *f, float time, const QColor &color
         barData.clear();
         barData.reserve(rawData.size() * 18);
 
-        float dataRangeX = maxX - minX;
-        if (dataRangeX == 0.0f) dataRangeX = 1.0f;
-        float barWidth = 0.015f * dataRangeX;
+        float barWidth = DataProcessor::calculateBarWidth(rawData, minX, maxX);
         float yBottom  = renderMinY;
 
         for (const auto &p : rawData) {

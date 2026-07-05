@@ -105,3 +105,24 @@ std::vector<DataPoint> DataProcessor::downsampleLTTB(const std::vector<DataPoint
 
     return sampled;
 }
+
+float DataProcessor::calculateBarWidth(const std::vector<DataPoint>& data, float minX, float maxX)
+{
+    if (data.size() < 2) {
+        float range = maxX - minX;
+        return (range <= 0.0f ? 1.0f : range) * 0.015f;
+    }
+    float minDeltaX = std::numeric_limits<float>::max();
+    size_t limit = std::min(data.size(), static_cast<size_t>(2000));
+    for (size_t i = 1; i < limit; ++i) {
+        float dx = std::abs(data[i].x - data[i - 1].x);
+        if (dx > 1e-6f && dx < minDeltaX) {
+            minDeltaX = dx;
+        }
+    }
+    if (minDeltaX == std::numeric_limits<float>::max() || minDeltaX <= 0.0f) {
+        float range = maxX - minX;
+        return (range <= 0.0f ? 1.0f : range) * 0.015f;
+    }
+    return 0.35f * minDeltaX;
+}

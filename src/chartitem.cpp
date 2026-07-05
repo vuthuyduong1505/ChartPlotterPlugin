@@ -365,7 +365,13 @@ void ChartItem::mousePressEvent(QMouseEvent *event)
 
     }
 
+    if (zoomX() <= 1.001f && zoomY() <= 1.001f) {
 
+        QQuickFramebufferObject::mousePressEvent(event);
+
+        return;
+
+    }
 
     m_panning = true;
 
@@ -425,6 +431,9 @@ void ChartItem::mouseReleaseEvent(QMouseEvent *event)
 
 void ChartItem::processPan(const QPointF& delta)
 {
+    if (zoomX() <= 1.001f && zoomY() <= 1.001f) {
+        return;
+    }
     m_viewport.panPixels(static_cast<float>(delta.x()),
                          static_cast<float>(delta.y()),
                          width(), height());
@@ -569,9 +578,9 @@ QVariantMap ChartItem::getNearestDataPoint(float mouseX, float mouseY, float scr
         }
         float denY = (u_maxY - u_minY) == 0.0f ? 0.001f : (u_maxY - u_minY);
 
-        // 1. Tính bề rộng chuẩn của cột trên màn hình pixel (Đồng bộ tuyệt đối với shader: 0.015f * mapRangeX)
-        float mapRangeX = mapMaxX - mapMinX; 
-        float pixelHalfWidth = mapRangeX * 0.015f * 0.5f * screenWidth;
+        // 1. Tính bề rộng chuẩn của cột trên màn hình pixel (Đồng bộ với DataProcessor và tỷ lệ Zoom)
+        float barWidth = DataProcessor::calculateBarWidth(dm->getData(), m_viewport.dataMinX(), m_viewport.dataMaxX());
+        float pixelHalfWidth = (barWidth / denX) * screenWidth;
         
         // 2. Tính tọa độ Y của đáy cột (zeroScreenY)
         float zeroYGL = (mapMaxY - mapMinY) * (0.0f - u_minY) / denY + mapMinY;
@@ -712,6 +721,7 @@ float ChartItem::panX() const {
     return m_viewport.viewMinX();
 }
 void ChartItem::setPanX(float val) {
+    if (zoomX() <= 1.001f && zoomY() <= 1.001f) return;
     float viewRange = m_viewport.viewMaxX() - m_viewport.viewMinX();
     m_viewport.setViewBoundsX(val, val + viewRange);
     m_viewChanged = true;
@@ -722,6 +732,7 @@ float ChartItem::panY() const {
     return m_viewport.viewMinY();
 }
 void ChartItem::setPanY(float val) {
+    if (zoomX() <= 1.001f && zoomY() <= 1.001f) return;
     float viewRange = m_viewport.viewMaxY() - m_viewport.viewMinY();
     m_viewport.setViewBoundsY(val, val + viewRange);
     m_viewChanged = true;
