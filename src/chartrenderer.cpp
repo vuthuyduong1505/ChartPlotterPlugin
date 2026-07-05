@@ -103,5 +103,7 @@ void ChartRenderer::render()
 
 QOpenGLFramebufferObject *ChartRenderer::createFramebufferObject(const QSize &size)
 {
-    return new QOpenGLFramebufferObject(size);
+    QOpenGLFramebufferObjectFormat format;
+    format.setSamples(4);
+    return new QOpenGLFramebufferObject(size, format);
 }

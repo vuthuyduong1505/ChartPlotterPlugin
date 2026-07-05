@@ -22,9 +22,11 @@ public:
 private:
     QOpenGLShaderProgram *program;
     QOpenGLBuffer vboBar;
+    QOpenGLBuffer vboGrid;
+    QOpenGLBuffer vboAxes;
     QOpenGLVertexArrayObject vao;
     std::vector<float> barData;
-
+    std::vector<float> gridData;
 };
 
 #endif // BARCHARTSTRATEGY_H
