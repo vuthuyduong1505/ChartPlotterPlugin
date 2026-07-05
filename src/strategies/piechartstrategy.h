@@ -7,6 +7,17 @@
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLShaderProgram>
 #include <vector>
+#include <QString>
+
+struct PieSliceInfo {
+    float weight;
+    QString name;
+    float startAngle;
+    float arcAngle;
+    QVector4D color;
+    float binMin;
+    float binMax;
+};
 
 class pieChartStrategy : public ChartStrategy
 {
@@ -19,22 +30,19 @@ public:
               float minX, float maxX, float minY, float maxY,
               bool dataDirty, int lineStyle = 0) override;
 
+    void setHoveredSlice(int slice) override { m_hoveredSlice = slice; }
+    void setPieBinMode(int mode) override { m_pieBinMode = mode; }
+
+    static std::vector<PieSliceInfo> computeSlices(const std::vector<DataPoint> &rawData,
+                                                   float minX, float maxX, float minY, float maxY,
+                                                   int binMode, const QColor &baseColor);
+
 private:
-    static constexpr int kMaxDirectSlices = 12;
-    static constexpr int kBinSliceCount = 8;
-
-    std::vector<float> computeSliceWeights(const std::vector<DataPoint> &rawData,
-                                           float minX, float maxX) const;
-    void rebuildSliceGeometry(QOpenGLFunctions *f, float scaleX, float scaleY);
-    QVector4D sliceColor(const QColor &base, int index, int total) const;
-
-    std::vector<QOpenGLBuffer> vboSlices;
-    std::vector<int> m_vertexCounts;
-    std::vector<float> m_sliceWeights;
+    QOpenGLBuffer vboQuad;
     QOpenGLShaderProgram *program;
     QOpenGLVertexArrayObject vao;
-    int m_lastViewportW = 0;
-    int m_lastViewportH = 0;
+    int m_hoveredSlice = -1;
+    int m_pieBinMode = 0;
 };
 
 #endif // PIECHARTSTRATEGY_H

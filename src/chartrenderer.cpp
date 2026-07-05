@@ -27,6 +27,8 @@ void ChartRenderer::synchronize(QQuickFramebufferObject *item)
     m_type = view->chartType();
     m_color = view->chartColor();
     m_lineStyle = view->lineStyle();
+    m_hoveredSlice = view->m_hoveredSlice;
+    m_pieBinMode = view->m_pieBinMode;
 
     // ĐỒNG BỘ HÓA AN TOÀN ĐA LUỒNG
     if (view->m_dataChanged || m_renderData.empty() || m_type != m_currentType) {
@@ -95,6 +97,8 @@ void ChartRenderer::render()
             drawMaxY = m_dataMaxY;
         }
 
+        strategy->setHoveredSlice(m_hoveredSlice);
+        strategy->setPieBinMode(m_pieBinMode);
         strategy->draw(f, time, m_color, m_renderData,
                        drawMinX, drawMaxX, drawMinY, drawMaxY, m_dataDirty, m_lineStyle);
     }

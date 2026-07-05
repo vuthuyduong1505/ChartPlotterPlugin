@@ -60,7 +60,7 @@ Window {
             border.width: 1.5
             x: myplotter.nearestPointMap.valid ? myplotter.dataToX(myplotter.nearestPointMap.dataX) - width / 2 : 0
             y: myplotter.nearestPointMap.valid ? myplotter.dataToY(myplotter.nearestPointMap.dataY) - height / 2 : 0
-            visible: hoverHandler.hovered && myplotter.nearestPointMap.valid
+            visible: hoverHandler.hovered && myplotter.nearestPointMap.valid && !myplotter.nearestPointMap.isPie
             z: 8
         }
 
@@ -127,10 +127,10 @@ Window {
                     font.pixelSize: 11
                     font.bold: true
                     font.family: "Monospace"
-                    // Nếu là Pie Chart thì in ra %, ngược lại in ra X
+                    // Nếu là Pie Chart thì in ra tỷ lệ % và số điểm, ngược lại in ra X
                     text: myplotter.nearestPointMap.valid 
                           ? (myplotter.nearestPointMap.isPie 
-                             ? myplotter.nearestPointMap.percent.toFixed(1) + "%" 
+                             ? "Tỷ lệ: " + (myplotter.nearestPointMap.percent < 0.01 && myplotter.nearestPointMap.percent > 0 ? "<0.01" : myplotter.nearestPointMap.percent.toFixed(1)) + "% (" + myplotter.nearestPointMap.dataY + " điểm)"
                              : "X: " + myplotter.nearestPointMap.dataX.toFixed(3)) 
                           : ""
                 }
@@ -140,11 +140,27 @@ Window {
                     font.pixelSize: 11
                     font.bold: true
                     font.family: "Monospace"
-                    // Ẩn hoàn toàn dòng Y nếu đang ở chế độ Pie Chart
                     visible: myplotter.nearestPointMap.valid && !myplotter.nearestPointMap.isPie
                     text: myplotter.nearestPointMap.valid && !myplotter.nearestPointMap.isPie 
                           ? "Y: " + myplotter.nearestPointMap.dataY.toFixed(3) 
                           : ""
+                }
+
+                Text {
+                    color: "#00ffcc"
+                    font.pixelSize: 11
+                    font.bold: true
+                    font.family: "Monospace"
+                    visible: myplotter.nearestPointMap.valid && myplotter.nearestPointMap.isPie
+                    text: {
+                        if (!myplotter.nearestPointMap.valid || !myplotter.nearestPointMap.isPie) return "";
+                        if (myplotter.nearestPointMap.sliceName === "Ngoại lai (Outliers)") {
+                            return "Khoảng giá trị: Khác";
+                        }
+                        var minVal = myplotter.nearestPointMap.currentBinMin;
+                        var maxVal = myplotter.nearestPointMap.currentBinMax;
+                        return "Khoảng giá trị: " + (minVal !== undefined ? minVal.toFixed(3) : "0.000") + " -> " + (maxVal !== undefined ? maxVal.toFixed(3) : "0.000");
+                    }
                 }
             }
         }

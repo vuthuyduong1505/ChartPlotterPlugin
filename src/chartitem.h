@@ -35,6 +35,7 @@ class ChartItem : public QQuickFramebufferObject
     Q_PROPERTY(float viewMaxX READ viewMaxX NOTIFY xTicksChanged)
     Q_PROPERTY(float viewMinY READ viewMinY NOTIFY yTicksChanged)
     Q_PROPERTY(float viewMaxY READ viewMaxY NOTIFY yTicksChanged)
+    Q_PROPERTY(int pieBinMode READ pieBinMode WRITE setPieBinMode NOTIFY pieBinModeChanged)
 
 public:
     ChartItem();
@@ -58,6 +59,9 @@ public:
 
     int lineStyle() const { return m_lineStyle; }
     void setLineStyle(int style);
+
+    int pieBinMode() const { return m_pieBinMode; }
+    void setPieBinMode(int mode);
 
     float zoomX() const;
     void setZoomX(float val);
@@ -101,6 +105,7 @@ signals:
     void dataModeChanged();
     void isAutoPanEnabledChanged();
     void lineStyleChanged();
+    void pieBinModeChanged();
     void zoomXChanged();
     void zoomYChanged();
     void panXChanged();
@@ -133,6 +138,8 @@ private:
     QPointF m_lastPanPos;
     bool m_isAutoPanEnabled = true;
     int m_lineStyle = 0; // 0: solid, 1: dashed, 2: dotted
+    int m_pieBinMode = 0; // 0: Theo X, 1: Theo 5 mức Y
+    int m_hoveredSlice = -1; // Lát đang được di chuột vào (Exploded view)
 
     friend class ChartRenderer; // Cho phép Renderer truy cập m_dataChanged, m_viewport
 };

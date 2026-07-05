@@ -14,7 +14,8 @@ public:
                       const std::vector<DataPoint> &rawData,
                       float minX, float maxX, float minY, float maxY,
                       bool dataDirty, int lineStyle = 0) =0; // thực hiện lệnh vẽ biểu đồ
-
+    virtual void setHoveredSlice(int slice) { (void)slice; }
+    virtual void setPieBinMode(int mode) { (void)mode; }
 };
 
 #endif // CHARTSTRATEGY_H

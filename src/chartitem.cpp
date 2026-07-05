@@ -1,6 +1,7 @@
 #include "chartitem.h"
 #include "chartrenderer.h"
 #include "dataprocessor.h"
+#include "strategies/piechartstrategy.h"
 
 #include "src/fileloader.h"
 #include <QDebug>
@@ -168,6 +169,15 @@ void ChartItem::setLineStyle(int style)
     if (m_lineStyle != style) {
         m_lineStyle = style;
         emit lineStyleChanged();
+        update();
+    }
+}
+
+void ChartItem::setPieBinMode(int mode)
+{
+    if (m_pieBinMode != mode) {
+        m_pieBinMode = mode;
+        emit pieBinModeChanged();
         update();
     }
 }
@@ -482,6 +492,7 @@ QVariantMap ChartItem::getNearestDataPoint(float mouseX, float mouseY, float scr
     result["screenY"] = 0.0f;
     result["isPie"] = false;
     result["percent"] = 0.0f;
+    result["sliceName"] = "";
 
     if (screenWidth <= 0.0f || screenHeight <= 0.0f) {
         return result;
@@ -605,91 +616,63 @@ QVariantMap ChartItem::getNearestDataPoint(float mouseX, float mouseY, float scr
             result["valid"] = false;
         }
     } else if (m_chartType == 2) {
-        // --- PIE CHART: HIT-TESTING ĐỒNG BỘ VỚI OPENGL ---
+        // --- PIE / DONUT CHART: HIT-TESTING ĐỒNG BỘ VỚI OPENGL SDF ---
         float cx = screenWidth / 2.0f;
         float cy = screenHeight / 2.0f;
-        // Bán kính 0.6f theo chuẩn code PieChartStrategy
-        float radius = 0.6f * (qMin(screenWidth, screenHeight) / 2.0f); 
+        float minDim = qMin(screenWidth, screenHeight) / 2.0f;
+        float outerRadius = 0.56f * minDim;
+        float innerRadius = 0.26f * minDim; // Lỗ donut SDF
 
         float dx = mouseX - cx;
-        // QUAN TRỌNG: Lật ngược trục Y (cy - mouseY) để đồng bộ với hàm sin/cos của OpenGL
-        float dy = cy - mouseY; 
+        float dy = cy - mouseY;
         float dist = std::sqrt(dx * dx + dy * dy);
 
-        if (dist <= radius) {
-            // Đồng bộ thuật toán computeSliceWeights của pieChartStrategy
-            struct SliceInfo {
-                float weight;
-                float dataX;
-                float dataY;
-            };
-            std::vector<SliceInfo> slices;
-
+        int hitSlice = -1;
+        if (dist >= innerRadius && dist <= outerRadius) {
             const auto data = dm->getData();
-            float minX = data.front().x;
-            float maxX = data.back().x;
-            constexpr int kMaxDirectSlices = 12;
-            constexpr int kBinSliceCount = 8;
+            float minX, maxX, minY, maxY;
+            DataProcessor::calculateBounds(data, minX, maxX, minY, maxY);
 
-            if (data.size() <= kMaxDirectSlices) {
-                for (const auto& p : data) {
-                    float w = qMax(p.y, 0.0f);
-                    if (w > 0.0f) {
-                        slices.push_back({w, p.x, p.y});
-                    }
-                }
-            } else {
-                std::vector<float> binWeights(kBinSliceCount, 0.0f);
-                std::vector<float> binXSum(kBinSliceCount, 0.0f);
-                std::vector<int> binCount(kBinSliceCount, 0);
-                
-                float rangeX = maxX - minX;
-                if (rangeX < 1e-6f) rangeX = 1.0f;
-
-                for (const auto& p : data) {
-                    int bin = static_cast<int>((p.x - minX) / rangeX * kBinSliceCount);
-                    bin = std::min(std::max(bin, 0), kBinSliceCount - 1);
-                    float w = qMax(p.y, 0.0f);
-                    binWeights[bin] += w;
-                    binXSum[bin] += p.x;
-                    binCount[bin]++;
-                }
-
-                for (int i = 0; i < kBinSliceCount; ++i) {
-                    if (binWeights[i] > 0.0f) {
-                        float avgX = binCount[i] > 0 ? (binXSum[i] / binCount[i]) : 0.0f;
-                        slices.push_back({binWeights[i], avgX, binWeights[i]});
-                    }
-                }
-            }
-
+            auto slices = pieChartStrategy::computeSlices(data, minX, maxX, minY, maxY, m_pieBinMode, m_chartColor);
+            
             float totalSum = 0.0f;
             for (const auto& s : slices) {
                 totalSum += s.weight;
             }
 
             if (totalSum > 0.0f) {
-                float mouseAngle = std::atan2(dy, dx) * 180.0f / M_PI;
-                if (mouseAngle < 0.0f) mouseAngle += 360.0f;
+                float mouseAngle = std::atan2(dy, dx);
+                if (mouseAngle < 0.0f) mouseAngle += 2.0f * static_cast<float>(M_PI);
 
-                float currentAngle = 0.0f;
-                for (const auto& s : slices) {
-                    float sliceAngle = (s.weight / totalSum) * 360.0f;
-                    
-                    if (sliceAngle > 0.0f && mouseAngle >= currentAngle && mouseAngle < currentAngle + sliceAngle) {
+                for (size_t i = 0; i < slices.size(); ++i) {
+                    float sliceAngle = slices[i].arcAngle;
+                    if (sliceAngle > 0.0f && mouseAngle >= slices[i].startAngle && mouseAngle < slices[i].startAngle + sliceAngle) {
                         result["valid"] = true;
-                        result["isPie"] = true; // Bật cờ Pie Chart
-                        result["percent"] = (s.weight / totalSum) * 100.0f; // Tính %
-                        result["dataX"] = s.dataX;
-                        result["dataY"] = s.dataY;
-                        result["screenX"] = mouseX; 
+                        result["isPie"] = true;
+                        result["sliceName"] = slices[i].name;
+                        result["percent"] = (slices[i].weight / totalSum) * 100.0f;
+                        result["dataX"] = 0.0f;
+                        result["dataY"] = slices[i].weight;
+                        result["screenX"] = mouseX;
                         result["screenY"] = mouseY;
+                        result["currentBinMin"] = slices[i].binMin;
+                        result["currentBinMax"] = slices[i].binMax;
+                        hitSlice = static_cast<int>(i);
                         break;
                     }
-                    currentAngle += sliceAngle;
                 }
             }
         }
+
+        if (m_hoveredSlice != hitSlice) {
+            m_hoveredSlice = hitSlice;
+            update();
+        }
+    }
+
+    if (m_chartType != 2 && m_hoveredSlice != -1) {
+        m_hoveredSlice = -1;
+        update();
     }
 
     return result;

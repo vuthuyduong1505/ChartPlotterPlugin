@@ -39,6 +39,8 @@ private:
     float m_viewMinY = 0.0f;
     float m_viewMaxY = 1.0f;
     bool m_dataDirty = false;
+    int m_hoveredSlice = -1;
+    int m_pieBinMode = 0;
 };
 
 #endif // CHARTRENDERER_H
