@@ -192,23 +192,43 @@ std::vector<PieSliceInfo> pieChartStrategy::computeSlices(const std::vector<Data
         }
     }
 
-    // Đồng bộ góc startAngle và phối màu
+    // Đồng bộ góc startAngle và phối màu HSL xoay vòng (Hue Rotation)
     float currentAngle = 0.0f;
+    float baseH, baseS, baseL, baseA;
+    baseColor.getHslF(&baseH, &baseS, &baseL, &baseA);
+    if (baseH < 0.0f) baseH = 0.0f; // Xử lý nếu màu achromatic (trắng/đen/xám)
+    if (baseS < 0.25f) baseS = 0.65f; // Đảm bảo độ bão hòa đủ cao để màu xoay vòng nổi bật
+    if (baseL < 0.3f) baseL = 0.45f;  // Tránh màu quá tối
+    if (baseL > 0.8f) baseL = 0.6f;   // Tránh màu quá sáng
+
+    int mainSliceIndex = 0;
     for (int i = 0; i < totalSlices; ++i) {
         slices[i].startAngle = currentAngle;
         
-        // Màu sắc: Gán màu đỏ đậm cho nhóm Outliers để tách biệt hoàn toàn
+        // Riêng nhóm Outliers (Spikes): Màu tương phản mạnh nhất với màu chủ đạo (đối diện trên vòng tròn màu sắc +180 độ)
         if (slices[i].name == "Ngoại lai (Outliers)") {
-            slices[i].color = QVector4D(0.88f, 0.12f, 0.12f, 1.0f); // Đỏ đậm
-        } else {
-            float t = totalSlices > 1 ? static_cast<float>(i) / static_cast<float>(totalSlices - 1) : 0.0f;
-            float factor = 0.65f + 0.35f * (1.0f - t);
-            if (i % 2 == 1) factor *= 0.88f;
+            float oppH = baseH + 0.5f;
+            while (oppH >= 1.0f) oppH -= 1.0f;
+            // Độ bão hòa cao nhất (s = 1.0) và độ sáng tương phản/nổi bật (l = 0.5) để tăng tính cảnh báo
+            QColor oppColor = QColor::fromHslF(oppH, 1.0f, 0.5f, 1.0f);
             slices[i].color = QVector4D(
-                std::min(baseColor.redF() * factor, 1.0f),
-                std::min(baseColor.greenF() * factor, 1.0f),
-                std::min(baseColor.blueF() * factor, 1.0f),
+                static_cast<float>(oppColor.redF()),
+                static_cast<float>(oppColor.greenF()),
+                static_cast<float>(oppColor.blueF()),
                 1.0f);
+        } else {
+            // Lát đầu tiên dùng gốc (mainSliceIndex == 0), các lát tiếp theo tự động cộng thêm 50 độ vào Hue
+            float sliceH = baseH + (static_cast<float>(mainSliceIndex) * (50.0f / 360.0f));
+            while (sliceH >= 1.0f) sliceH -= 1.0f;
+            while (sliceH < 0.0f) sliceH += 1.0f;
+
+            QColor sliceColor = QColor::fromHslF(sliceH, baseS, baseL, baseA);
+            slices[i].color = QVector4D(
+                static_cast<float>(sliceColor.redF()),
+                static_cast<float>(sliceColor.greenF()),
+                static_cast<float>(sliceColor.blueF()),
+                1.0f);
+            mainSliceIndex++;
         }
 
         currentAngle += slices[i].arcAngle;
@@ -241,7 +261,24 @@ void pieChartStrategy::draw(QOpenGLFunctions *f, float time, const QColor &color
     for (int i = 0; i < sliceCount; ++i) {
         startAngles[i] = slices[i].startAngle;
         arcAngles[i] = slices[i].arcAngle;
-        sliceColors[i] = slices[i].color;
+        
+        if (i == m_hoveredSlice) {
+            // Hiệu ứng Hover: Tăng độ bão hòa (Saturation) và làm sáng nhẹ để trông nổi bật hơn
+            QColor col = QColor::fromRgbF(slices[i].color.x(), slices[i].color.y(), slices[i].color.z(), slices[i].color.w());
+            float h, s, l, a;
+            col.getHslF(&h, &s, &l, &a);
+            if (h < 0.0f) h = 0.0f;
+            s = std::min(1.0f, s + 0.35f); // Tăng độ bão hòa
+            l = std::min(0.85f, l + 0.15f); // Tăng sáng nhẹ để rực rỡ
+            QColor hoverCol = QColor::fromHslF(h, s, l, a);
+            sliceColors[i] = QVector4D(
+                static_cast<float>(hoverCol.redF()),
+                static_cast<float>(hoverCol.greenF()),
+                static_cast<float>(hoverCol.blueF()),
+                1.0f);
+        } else {
+            sliceColors[i] = slices[i].color;
+        }
     }
 
     program->bind();
