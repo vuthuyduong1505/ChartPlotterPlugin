@@ -28,6 +28,8 @@ qt_add_executable(appQmlTest
     src/strategies/barchartstrategy.cpp
     src/strategies/piechartstrategy.h
     src/strategies/piechartstrategy.cpp
+    src/strategies/chartstrategyfactory.h
+    src/strategies/chartstrategyfactory.cpp
 )
 qt_add_qml_module(appQmlTest
     URI QmlTest

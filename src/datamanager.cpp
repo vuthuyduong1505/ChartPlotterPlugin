@@ -15,6 +15,10 @@ void DataManager::addData(float x, float y)
     {
         std::lock_guard<std::mutex> lock(mutex);
         m_data.push_back({x, y});
+        if (m_data.size() > 2000) {
+            // Sliding window: khi vượt quá 2000 điểm thì tự động xóa bỏ các điểm ở đầu mảng
+            m_data.erase(m_data.begin(), m_data.begin() + (m_data.size() - 2000));
+        }
     }
     emit dataChanged();
 }

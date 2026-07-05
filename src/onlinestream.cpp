@@ -4,7 +4,7 @@
 #include <QtMath>
 
 namespace {
-constexpr int kMaxOnlinePoints = 400;
+constexpr int kMaxOnlinePoints = 2000;
 }
 
 OnlineStream *OnlineStream::instance()

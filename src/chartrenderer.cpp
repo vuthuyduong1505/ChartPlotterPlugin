@@ -1,9 +1,7 @@
 #include "chartrenderer.h"
 #include "chartitem.h"
 #include "dataprocessor.h"
-#include "strategies/linechartstrategy.h"
-#include "strategies/barchartstrategy.h"
-#include "strategies/piechartstrategy.h"
+#include "strategies/chartstrategyfactory.h"
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
 
@@ -70,14 +68,8 @@ void ChartRenderer::render()
             strategy = nullptr;
         }
 
-        // Factory Pattern
-        if (m_type == 0) {
-            strategy = new LineChartStrategy();
-        } else if (m_type == 1) {
-            strategy = new BarChartStrategy();
-        } else if (m_type == 2) {
-            strategy = new pieChartStrategy();
-        }
+        // Sử dụng Factory Pattern chuẩn hóa
+        strategy = ChartStrategyFactory::createStrategy(m_type);
 
         if (strategy != nullptr) strategy->init();
         m_currentType = m_type;
