@@ -41,11 +41,6 @@ void BarChartStrategy::draw(QOpenGLFunctions *f, float time, const QColor &color
         renderMinY -= 1.0f;
     }
 
-    // Tỷ lệ khoảng đệm 20% cho trục Y
-    float paddingY = (renderMaxY - renderMinY) * 0.2f;
-    renderMinY -= paddingY;
-    renderMaxY += paddingY;
-
     program->bind();
     vao.bind();
 
@@ -55,8 +50,8 @@ void BarChartStrategy::draw(QOpenGLFunctions *f, float time, const QColor &color
     program->setUniformValue("u_maxX", maxX);
     program->setUniformValue("u_minY", renderMinY);
     program->setUniformValue("u_maxY", renderMaxY);
-    program->setUniformValue("u_mapMinX", -0.9f); // Chừa lề để cột không sát mép
-    program->setUniformValue("u_mapMaxX", 0.9f);
+    program->setUniformValue("u_mapMinX", -1.0f); // Không chừa lề, sát mép trái
+    program->setUniformValue("u_mapMaxX", 1.0f);
     program->setUniformValue("u_mapMinY", -1.0f);
     program->setUniformValue("u_mapMaxY", 1.0f);
 

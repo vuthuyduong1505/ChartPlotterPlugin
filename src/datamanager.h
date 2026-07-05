@@ -26,6 +26,15 @@ public:
     //hàm xóa sạch kho
     void clear();
 
+    // Các hàm phụ trợ tối ưu hóa Pointing tránh copy mảng lớn
+    bool isEmpty();
+    int dataSize();
+    DataPoint firstPoint();
+    DataPoint lastPoint();
+    DataPoint findNearestPoint(float targetX);
+    std::pair<DataPoint, DataPoint> findAdjacentPoints(float targetX);
+    void createStressTestData();
+
 
 signals:
     // báo hiệu dữ liệu đã thay đổi

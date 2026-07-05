@@ -29,6 +29,12 @@ class ChartItem : public QQuickFramebufferObject
     Q_PROPERTY(float dataMaxX READ dataMaxX NOTIFY dataBoundsChanged)
     Q_PROPERTY(float dataMinY READ dataMinY NOTIFY dataBoundsChanged)
     Q_PROPERTY(float dataMaxY READ dataMaxY NOTIFY dataBoundsChanged)
+    Q_PROPERTY(QVariantList xTicks READ xTicks NOTIFY xTicksChanged)
+    Q_PROPERTY(QVariantList yTicks READ yTicks NOTIFY yTicksChanged)
+    Q_PROPERTY(float viewMinX READ viewMinX NOTIFY xTicksChanged)
+    Q_PROPERTY(float viewMaxX READ viewMaxX NOTIFY xTicksChanged)
+    Q_PROPERTY(float viewMinY READ viewMinY NOTIFY yTicksChanged)
+    Q_PROPERTY(float viewMaxY READ viewMaxY NOTIFY yTicksChanged)
 
 public:
     ChartItem();
@@ -65,6 +71,10 @@ public:
     float dataMaxX() const;
     float dataMinY() const;
     float dataMaxY() const;
+    float viewMinX() const { return m_viewport.viewMinX(); }
+    float viewMaxX() const { return m_viewport.viewMaxX(); }
+    float viewMinY() const { return m_viewport.viewMinY(); }
+    float viewMaxY() const { return m_viewport.viewMaxY(); }
 
     //Mở cổng API cho QML gọi xuống
     Q_INVOKABLE bool loadDataFromFile(const QUrl &fileUrl);
@@ -73,6 +83,10 @@ public:
     Q_INVOKABLE void pauseStream();
     Q_INVOKABLE void resumeStream();
     Q_INVOKABLE QVariantMap getNearestDataPoint(float mouseX, float mouseY, float screenWidth, float screenHeight);
+    Q_INVOKABLE void createStressTestData();
+    
+    QVariantList xTicks() const;
+    QVariantList yTicks() const;
 
 protected:
     bool event(QEvent *event) override;
@@ -92,8 +106,12 @@ signals:
     void panXChanged();
     void panYChanged();
     void dataBoundsChanged();
+    void xTicksChanged();
+    void yTicksChanged();
 
 private:
+    float calculateGridStep(float range) const;
+    QVariantList calculateTicks(float minVal, float maxVal);
     void resetViewportFromData();
     ViewportManager::ZoomAxis zoomAxisFromModifiers(Qt::KeyboardModifiers mods) const;
     float zoomFactorFromWheel(const QWheelEvent *event) const;

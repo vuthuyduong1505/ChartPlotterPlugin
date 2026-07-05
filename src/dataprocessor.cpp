@@ -34,3 +34,74 @@ void DataProcessor::calculateBounds(const std::vector<DataPoint>& data,
         maxY += 0.001f;
     }
 }
+
+std::vector<DataPoint> DataProcessor::downsampleLTTB(const std::vector<DataPoint>& data, int threshold)
+{
+    int dataSize = static_cast<int>(data.size());
+    if (dataSize <= threshold || threshold <= 2) {
+        return data;
+    }
+
+    std::vector<DataPoint> sampled;
+    sampled.reserve(threshold);
+
+    // 1. Điểm đầu luôn được chọn
+    sampled.push_back(data[0]);
+
+    // Kích thước trung bình của mỗi bucket (trừ điểm đầu và cuối)
+    double bucketSize = static_cast<double>(dataSize - 2) / (threshold - 2);
+
+    int aIdx = 0; // Chỉ số của điểm đã chọn ở bucket trước
+
+    for (int i = 0; i < threshold - 2; ++i) {
+        // Tính toán khoảng chỉ số của bucket hiện tại (i) và bucket tiếp theo (i+1)
+        int bucketStart = static_cast<int>(std::floor((i) * bucketSize)) + 1;
+        int bucketEnd = static_cast<int>(std::floor((i + 1) * bucketSize)) + 1;
+        bucketEnd = std::min(bucketEnd, dataSize - 1);
+
+        int nextBucketStart = static_cast<int>(std::floor((i + 1) * bucketSize)) + 1;
+        int nextBucketEnd = static_cast<int>(std::floor((i + 2) * bucketSize)) + 1;
+        nextBucketEnd = std::min(nextBucketEnd, dataSize - 1);
+
+        // Tính điểm trung bình (centroid) của bucket tiếp theo
+        double nextAvgX = 0.0;
+        double nextAvgY = 0.0;
+        int nextCount = nextBucketEnd - nextBucketStart;
+        if (nextCount > 0) {
+            for (int k = nextBucketStart; k < nextBucketEnd; ++k) {
+                nextAvgX += data[k].x;
+                nextAvgY += data[k].y;
+            }
+            nextAvgX /= nextCount;
+            nextAvgY /= nextCount;
+        } else {
+            nextAvgX = data[dataSize - 1].x;
+            nextAvgY = data[dataSize - 1].y;
+        }
+
+        // Tìm điểm c trong bucket hiện tại tối đa hóa diện tích tam giác (a, c, centroid)
+        double maxArea = -1.0;
+        int bestIdx = bucketStart;
+
+        double ax = data[aIdx].x;
+        double ay = data[aIdx].y;
+
+        for (int k = bucketStart; k < bucketEnd; ++k) {
+            double cx = data[k].x;
+            double cy = data[k].y;
+            double area = std::abs((ax - nextAvgX) * (cy - ay) - (ax - cx) * (nextAvgY - ay));
+            if (area > maxArea) {
+                maxArea = area;
+                bestIdx = k;
+            }
+        }
+
+        sampled.push_back(data[bestIdx]);
+        aIdx = bestIdx; // Cập nhật điểm neo cho vòng lặp kế tiếp
+    }
+
+    // 2. Điểm cuối luôn được chọn
+    sampled.push_back(data[dataSize - 1]);
+
+    return sampled;
+}

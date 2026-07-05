@@ -10,6 +10,8 @@ int main(int argc, char *argv[])
 
     qmlRegisterType<ChartItem>("MyChartLibrary", 1, 0, "MyChart");
 
+
+
     QQmlApplicationEngine engine;
     QObject::connect(
         &engine,

@@ -38,7 +38,12 @@ void ChartRenderer::synchronize(QQuickFramebufferObject *item)
             m_dataMinY = 0.0f;
             m_dataMaxY = 1.0f;
         } else {
+            // Tính toán biên dữ liệu dựa trên tập dữ liệu GỐC để đảm bảo lưới tọa độ chính xác
             DataProcessor::calculateBounds(m_renderData, m_dataMinX, m_dataMaxX, m_dataMinY, m_dataMaxY);
+            // Thực hiện giảm mẫu bằng LTTB nếu dữ liệu vẽ lớn hơn 50000 điểm
+            if (m_renderData.size() > 50000) {
+                m_renderData = DataProcessor::downsampleLTTB(m_renderData, 50000);
+            }
         }
         m_dataDirty = true;
         view->m_dataChanged = false;

@@ -1,0 +1,13 @@
+QML debugging is enabled. Only use this in a safe environment.
+warning: Environment variable QT_LOGGING_TO_CONSOLE is deprecated, use
+QT_ASSUME_STDERR_HAS_CONSOLE and/or QT_FORCE_STDERR_LOGGING instead.
+=== KHOI CHAY KIEM TRA POINTING ===
+Viewport X: 0 to 50
+Viewport Y: 50.0001 to 70.0087
+mouseX: 223.907 mouseY: 265 targetDataX: 12.722 p1:( 12.7 , 61.3323 ) p2:( 12.8 , 62.3151 ) interpolatedDataY: 61.5485 lineScreenY: 236.782 distanceY: 28.2177
+Hover Y (pixel): 265 -> Valid: false dataX: 0 dataY: 0 screenY: 0
+mouseX: 223.907 mouseY: 332 targetDataX: 12.722 p1:( 12.7 , 61.3323 ) p2:( 12.8 , 62.3151 ) interpolatedDataY: 61.5485 lineScreenY: 236.782 distanceY: 95.2177
+Hover Y (pixel): 332 -> Valid: false dataX: 0 dataY: 0 screenY: 0
+mouseX: 223.907 mouseY: 429 targetDataX: 12.722 p1:( 12.7 , 61.3323 ) p2:( 12.8 , 62.3151 ) interpolatedDataY: 61.5485 lineScreenY: 236.782 distanceY: 192.218
+Hover Y (pixel): 429 -> Valid: false dataX: 0 dataY: 0 screenY: 0
+=== HOAN THANH KIEM TRA POINTING ===

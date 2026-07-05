@@ -3,6 +3,7 @@
 #include "dataprocessor.h"
 
 #include "src/fileloader.h"
+#include <QDebug>
 
 #include <QOpenGLFunctions>
 
@@ -19,21 +20,24 @@
 
 
 ChartItem::ChartItem() {
-
     setAcceptedMouseButtons(Qt::LeftButton);
-
     setAcceptHoverEvents(true);
-
-
 
     // Kết nối: khi DataManager báo có dữ liệu mới, đặt cờ thay đổi và gọi update() để vẽ lại
     connect(DataManager::instance(), &DataManager::dataChanged, this, [this](){
         m_dataChanged = true;
         updateAutoPanLogic();
         m_viewChanged = true;
+        emit xTicksChanged();
+        emit yTicksChanged();
         update();
     });
 
+    // Kết nối cập nhật Ticks khi viewport dịch chuyển hoặc co giãn
+    connect(this, &ChartItem::zoomXChanged, this, &ChartItem::xTicksChanged);
+    connect(this, &ChartItem::panXChanged, this, &ChartItem::xTicksChanged);
+    connect(this, &ChartItem::zoomYChanged, this, &ChartItem::yTicksChanged);
+    connect(this, &ChartItem::panYChanged, this, &ChartItem::yTicksChanged);
 }
 
 
@@ -52,7 +56,35 @@ void ChartItem::resetViewportFromData()
     }
     float minX, maxX, minY, maxY;
     DataProcessor::calculateBounds(data, minX, maxX, minY, maxY);
+    // Tự động tính toán khoảng xem ngang hiển thị 10.000 điểm dữ liệu đầu tiên
+    int dataSize = static_cast<int>(data.size());
+    float spanX = (maxX - minX);
+    if (dataSize > 10000) {
+        spanX = (maxX - minX) * (10000.0f / dataSize);
+    }
+
+    // Không khoảng đệm (Tight Fit): điểm đầu tiên khớp lề trái (-1.0 trong OpenGL)
+    float viewMinX = minX;
+    float viewMaxX = minX + spanX;
+
+    // Tính giá trị Y trung bình (avgY) của dữ liệu thô
+    float sumY = 0.0f;
+    for (const auto& p : data) {
+        sumY += p.y;
+    }
+    float avgY = sumY / dataSize;
+
+    // Căn dọc khít chặt (Tight Fit) căn giữa theo avgY
+    float halfRangeY = std::max(maxY - avgY, avgY - minY);
+    if (halfRangeY < 1e-4f) halfRangeY = 0.5f;
+    float viewMinY = avgY - halfRangeY;
+    float viewMaxY = avgY + halfRangeY;
+
+    // Cài đặt biên dữ liệu gốc và thiết lập viewport ban đầu
     m_viewport.resetToDataBounds(minX, maxX, minY, maxY);
+    m_viewport.setViewBoundsX(viewMinX, viewMaxX);
+    m_viewport.setViewBoundsY(viewMinY, viewMaxY);
+
     emit zoomXChanged();
     emit zoomYChanged();
     emit panXChanged();
@@ -455,8 +487,8 @@ QVariantMap ChartItem::getNearestDataPoint(float mouseX, float mouseY, float scr
         return result;
     }
 
-    const auto &data = DataManager::instance()->getData();
-    if (data.empty()) {
+    auto dm = DataManager::instance();
+    if (dm->isEmpty()) {
         return result;
     }
 
@@ -464,10 +496,6 @@ QVariantMap ChartItem::getNearestDataPoint(float mouseX, float mouseY, float scr
     float xGL = (mouseX / screenWidth) * 2.0f - 1.0f;
     float mapMinX = -1.0f;
     float mapMaxX = 1.0f;
-    if (m_chartType == 1) { // Bar Chart
-        mapMinX = -0.9f;
-        mapMaxX = 0.9f;
-    }
     float mapMinY = -1.0f;
     float mapMaxY = 1.0f;
 
@@ -478,27 +506,13 @@ QVariantMap ChartItem::getNearestDataPoint(float mouseX, float mouseY, float scr
     float targetDataX = u_minX + (xGL - mapMinX) * denX / (mapMaxX - mapMinX);
 
     // Ràng buộc targetDataX trong khoảng dữ liệu thực tế hiện có để tránh ngoại suy lỗi
-    targetDataX = std::max(data.front().x, std::min(data.back().x, targetDataX));
-
-    // Bước 2: Tìm kiếm nhị phân tìm 2 điểm dữ liệu liền kề bao bọc targetDataX
-    auto it = std::lower_bound(data.begin(), data.end(), targetDataX,
-        [](const DataPoint &dp, float val) {
-            return dp.x < val;
-        });
+    targetDataX = std::max(dm->firstPoint().x, std::min(dm->lastPoint().x, targetDataX));
 
     DataPoint p1, p2;
-    if (data.size() == 1) {
-        p1 = data[0];
-        p2 = data[0];
-    } else if (it == data.begin()) {
-        p1 = data[0];
-        p2 = data[1];
-    } else if (it == data.end()) {
-        p1 = data[data.size() - 2];
-        p2 = data[data.size() - 1];
-    } else {
-        p2 = *it;
-        p1 = *(it - 1);
+    if (m_chartType != 2) {
+        std::pair<DataPoint, DataPoint> adj = dm->findAdjacentPoints(targetDataX);
+        p1 = adj.first;
+        p2 = adj.second;
     }
 
     if (m_chartType == 0) {
@@ -517,16 +531,12 @@ QVariantMap ChartItem::getNearestDataPoint(float mouseX, float mouseY, float scr
             u_maxY += 1.0f;
             u_minY -= 1.0f;
         }
-        float paddingY = (u_maxY - u_minY) * 0.2f;
-        u_minY -= paddingY;
-        u_maxY += paddingY;
 
         float denY = (u_maxY - u_minY) == 0.0f ? 0.001f : (u_maxY - u_minY);
         float snappedYGL = (mapMaxY - mapMinY) * (interpolatedDataY - u_minY) / denY + mapMinY;
 
         float lineScreenY = (1.0f - snappedYGL) * 0.5f * screenHeight;
 
-        // Kiểm tra khoảng cách dọc (Hit Testing cho Line Chart)
         float distanceY = qAbs(mouseY - lineScreenY);
 
         if (distanceY <= 15.0f) {
@@ -546,9 +556,6 @@ QVariantMap ChartItem::getNearestDataPoint(float mouseX, float mouseY, float scr
             u_maxY += 1.0f;
             u_minY -= 1.0f;
         }
-        float paddingY = (u_maxY - u_minY) * 0.2f;
-        u_minY -= paddingY;
-        u_maxY += paddingY;
         float denY = (u_maxY - u_minY) == 0.0f ? 0.001f : (u_maxY - u_minY);
 
         // 1. Tính bề rộng chuẩn của cột trên màn hình pixel (Đồng bộ tuyệt đối với shader: 0.015f * mapRangeX)
@@ -618,6 +625,7 @@ QVariantMap ChartItem::getNearestDataPoint(float mouseX, float mouseY, float scr
             };
             std::vector<SliceInfo> slices;
 
+            const auto data = dm->getData();
             float minX = data.front().x;
             float maxX = data.back().x;
             constexpr int kMaxDirectSlices = 12;
@@ -741,5 +749,61 @@ float ChartItem::dataMinX() const { return m_viewport.dataMinX(); }
 float ChartItem::dataMaxX() const { return m_viewport.dataMaxX(); }
 float ChartItem::dataMinY() const { return m_viewport.dataMinY(); }
 float ChartItem::dataMaxY() const { return m_viewport.dataMaxY(); }
+
+void ChartItem::createStressTestData()
+{
+    DataManager::instance()->createStressTestData();
+    resetZoom();
+}
+
+float ChartItem::calculateGridStep(float range) const
+{
+    float rawStep = range / 8.0f;
+    if (rawStep <= 0.0f) return 1.0f;
+    float logStep = std::log10(rawStep);
+    float exponent = std::floor(logStep);
+    float base = std::pow(10.0f, exponent);
+    float fraction = rawStep / base;
+
+    float step;
+    if (fraction < 1.5f) step = 1.0f * base;
+    else if (fraction < 3.0f) step = 2.0f * base;
+    else if (fraction < 7.0f) step = 5.0f * base;
+    else step = 10.0f * base;
+    return step;
+}
+
+QVariantList ChartItem::calculateTicks(float minVal, float maxVal)
+{
+    QVariantList list;
+    float range = maxVal - minVal;
+    if (range <= 0.0f) return list;
+
+    float step = calculateGridStep(range);
+
+    // Tìm tick bắt đầu lớn hơn hoặc bằng minVal và chia hết cho step
+    float firstTick = std::ceil(minVal / step) * step;
+
+    for (float val = firstTick; val <= maxVal; val += step) {
+        if (val < minVal - 1e-5f || val > maxVal + 1e-5f) continue;
+
+        QVariantMap tick;
+        tick["value"] = QString::number(val, 'g', 6);
+        tick["position"] = (val - minVal) / range;
+        tick["val"] = val;
+        list.append(tick);
+    }
+    return list;
+}
+
+QVariantList ChartItem::xTicks() const
+{
+    return const_cast<ChartItem*>(this)->calculateTicks(m_viewport.viewMinX(), m_viewport.viewMaxX());
+}
+
+QVariantList ChartItem::yTicks() const
+{
+    return const_cast<ChartItem*>(this)->calculateTicks(m_viewport.viewMinY(), m_viewport.viewMaxY());
+}
 
 

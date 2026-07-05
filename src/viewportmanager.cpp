@@ -109,9 +109,9 @@ void ViewportManager::clampViewport()
     float rangeX = m_viewMaxX - m_viewMinX;
     float rangeY = m_viewMaxY - m_viewMinY;
 
-    // Không cho zoom in quá sâu (tối thiểu 1% phạm vi dữ liệu gốc)
-    rangeX = std::max(rangeX, dataRangeX * 0.01f);
-    rangeY = std::max(rangeY, dataRangeY * 0.01f);
+    // Không cho zoom in quá sâu (cho phép phóng to chi tiết)
+    rangeX = std::max(rangeX, 1e-5f);
+    rangeY = std::max(rangeY, 1e-5f);
 
     // Không cho zoom out rộng hơn 4 lần dữ liệu gốc (tối thiểu là 150.0f)
     float maxRangeX = std::max(dataRangeX * 4.0f, 150.0f);

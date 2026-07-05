@@ -23,6 +23,19 @@ Window {
 
         property bool isCropMode: false
 
+        // Hàm ánh xạ chung từ trị số dữ liệu sang tọa độ pixel trên màn hình (local)
+        function dataToX(val) {
+            var rangeX = myplotter.viewMaxX - myplotter.viewMinX;
+            if (rangeX <= 0.0) return 0.0;
+            return ((val - myplotter.viewMinX) / rangeX) * myplotter.width;
+        }
+
+        function dataToY(val) {
+            var rangeY = myplotter.viewMaxY - myplotter.viewMinY;
+            if (rangeY <= 0.0) return 0.0;
+            return (1.0 - (val - myplotter.viewMinY) / rangeY) * myplotter.height;
+        }
+
         // Bản đồ dữ liệu của điểm gần nhất
         readonly property var nearestPointMap: myplotter.getNearestDataPoint(
             hoverHandler.point.position.x,
@@ -45,8 +58,8 @@ Window {
             color: "#f1c40f"
             border.color: "#ffffff"
             border.width: 1.5
-            x: myplotter.nearestPointMap.valid ? myplotter.nearestPointMap.screenX - width / 2 : 0
-            y: myplotter.nearestPointMap.valid ? myplotter.nearestPointMap.screenY - height / 2 : 0
+            x: myplotter.nearestPointMap.valid ? myplotter.dataToX(myplotter.nearestPointMap.dataX) - width / 2 : 0
+            y: myplotter.nearestPointMap.valid ? myplotter.dataToY(myplotter.nearestPointMap.dataY) - height / 2 : 0
             visible: hoverHandler.hovered && myplotter.nearestPointMap.valid
             z: 8
         }
@@ -201,6 +214,67 @@ Window {
 
                 myplotter.isCropMode = false
             }
+        }
+
+        // Horizontal ScrollBar for panning navigation
+        ScrollBar {
+            id: hScrollBar
+            orientation: Qt.Horizontal
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: -25 // Đặt trong khoảng lề 40px của đồ thị
+            z: 20
+            visible: myplotter.chartType !== 2 && (myplotter.dataMaxX > myplotter.dataMinX)
+
+            // Kích thước tay cầm cuộn: tỉ lệ vùng hiển thị trên tổng dữ liệu (1.0 / zoomX)
+            size: (myplotter.zoomX > 0.0) ? (1.0 / myplotter.zoomX) : 1.0
+
+            // Vị trí cuộn hiện tại
+            position: {
+                var dataRangeX = myplotter.dataMaxX - myplotter.dataMinX
+                if (dataRangeX <= 0.0) return 0.0
+                return Math.max(0.0, Math.min(1.0 - size, (myplotter.panX - myplotter.dataMinX) / dataRangeX))
+            }
+
+            // Khi người dùng kéo thanh cuộn: cập nhật panX
+            onPositionChanged: {
+                if (activeFocus || pressed) {
+                    var dataRangeX = myplotter.dataMaxX - myplotter.dataMinX
+                    var newPanX = myplotter.dataMinX + position * dataRangeX
+                    if (Math.abs(myplotter.panX - newPanX) > 1e-5) {
+                        myplotter.panX = newPanX
+                    }
+                }
+            }
+        }
+    }
+
+    // Nhãn trục X dưới lề đồ thị
+    Repeater {
+        model: myplotter.chartType !== 2 ? myplotter.xTicks : null
+        delegate: Text {
+            text: modelData.value
+            color: "#888888"
+            font.pixelSize: 10
+            font.family: "Monospace"
+            x: myplotter.x + myplotter.dataToX(modelData.val) - width / 2
+            y: myplotter.y + myplotter.height + 4
+            visible: x >= myplotter.x - 2 && x + width <= myplotter.x + myplotter.width + 2
+        }
+    }
+
+    // Nhãn trục Y bên lề trái đồ thị
+    Repeater {
+        model: myplotter.chartType !== 2 ? myplotter.yTicks : null
+        delegate: Text {
+            text: modelData.value
+            color: "#888888"
+            font.pixelSize: 10
+            font.family: "Monospace"
+            x: myplotter.x - width - 8
+            y: myplotter.y + myplotter.dataToY(modelData.val) - height / 2
+            visible: y >= myplotter.y - 2 && y + height <= myplotter.y + myplotter.height + 2
         }
     }
 
@@ -358,6 +432,18 @@ Window {
                 radius: 4
             }
             onClicked: myplotter.isCropMode = !myplotter.isCropMode
+        }
+
+        Button {
+            text: "Stress Test (1M)"
+            background: Rectangle {
+                implicitWidth: 150
+                implicitHeight: 36
+                color: parent.down ? "#d0d0d0" : (parent.hovered ? "#e0e0e0" : "#ffffff")
+                border.color: "#999999"
+                radius: 4
+            }
+            onClicked: myplotter.createStressTestData()
         }
     }
 
