@@ -9,12 +9,14 @@
 #include <QPointF>
 #include <QUrl>
 #include <QVariantMap>
+#include <QtQml/qqmlregistration.h>
 
 
 // lớp ChartItem chạy trên luồng giao diện (GUI), lắng nghe chuột, bàn phím, kích thước cửa sổ
 class ChartItem : public QQuickFramebufferObject
 {
     Q_OBJECT
+    QML_NAMED_ELEMENT(MyChart)
     Q_PROPERTY(int chartType READ chartType WRITE setChartType NOTIFY chartTypeChanged)
     Q_PROPERTY(QColor chartColor READ chartColor WRITE setChartColor NOTIFY chartColorChanged)
     // 0: offline (file), 1: online (real-time stream)

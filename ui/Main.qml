@@ -2,7 +2,6 @@ import QtQuick
 import MyChartLibrary 1.0
 import QtQuick.Controls 2.15
 import QtQuick.Dialogs
-import "components"
 
 Window {
     width: 1024
