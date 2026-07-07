@@ -13,6 +13,10 @@ qt_add_executable(appQmlTest
     src/main.cpp
     src/chartitem.h
     src/chartitem.cpp
+    src/charthittester.h
+    src/charthittester.cpp
+    src/chartaxiscalculator.h
+    src/chartaxiscalculator.cpp
     src/chartrenderer.h
     src/chartrenderer.cpp
     src/dataprocessor.h
@@ -35,6 +39,11 @@ qt_add_qml_module(appQmlTest
     URI QmlTest
     QML_FILES
         ui/Main.qml
+        ui/components/TopNavBar.qml
+        ui/components/ChartTooltip.qml
+        ui/components/CrosshairOverlay.qml
+        ui/components/AxisLabels.qml
+        ui/components/FooterStatusBar.qml
         RESOURCES resources.qrc
         SOURCES src/datamanager.h src/datamanager.cpp
         SOURCES src/fileloader.h src/fileloader.cpp

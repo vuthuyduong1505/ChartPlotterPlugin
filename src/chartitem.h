@@ -115,8 +115,6 @@ signals:
     void yTicksChanged();
 
 private:
-    float calculateGridStep(float range) const;
-    QVariantList calculateTicks(float minVal, float maxVal);
     void resetViewportFromData();
     ViewportManager::ZoomAxis zoomAxisFromModifiers(Qt::KeyboardModifiers mods) const;
     float zoomFactorFromWheel(const QWheelEvent *event) const;
