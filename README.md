@@ -50,16 +50,5 @@ Sau khi biên dịch thành công, bạn có thể chạy file thực thi:
 - **Windows:** `build\Debug\appQmlTest.exe` hoặc `build\Release\appQmlTest.exe`
 - **Linux/macOS:** `./build/appQmlTest`
 
-## Tài Liệu Thiết Kế Chi Tiết
-
-Dự án đi kèm với bộ tài liệu phân tích kỹ thuật và thiết kế chuyên sâu (định dạng Markdown):
-
-- [Báo Cáo Thiết Kế Sản Phẩm](Bao_cao_Thiet_ke_San_pham.md)
-- [Giải Thích 3 Thuật Toán Core Chi Tiết](Giai_thich_3_Thuat_toan_Core_Chi_tiet.md)
-- [Giải Thích Luồng Dữ Liệu Chi Tiết](Giai_thich_Luong_Du_lieu_Chi_tiet.md)
-- [Sơ Đồ Lớp và Kỹ Thuật Chi Tiết](So_do_Lop_va_Ki_thuat_Chi_tiet.md)
-- [Sơ Đồ Hoạt Động Chi Tiết](So_do_Hoat_dong_Chi_tiet.md)
-- [Kế Hoạch & Nội Dung Slide Bảo Vệ](Ke_hoach_Slide_Bao_ve.md)
-
 ---
 *Dự án được xây dựng với mục tiêu tối ưu hiệu năng hiển thị và kiến trúc phần mềm sạch.*
